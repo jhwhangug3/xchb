@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
     <title>Chat with {{ other_user.first_name or other_user.username }} - Advanced Chat App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -953,13 +953,38 @@
             notifyNewMessage(fromName, text) {
                 try {
                     const body = String(text).slice(0, 120);
-                    if (document.visibilityState === 'hidden' && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                        const n = new Notification(`${fromName}`, { body });
-                        setTimeout(() => { try { n.close(); } catch (_) {} }, 4000);
+                    
+                    // Check if notifications are supported and permission is granted
+                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                        // Show notification if page is not focused or is hidden
+                        if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+                            const n = new Notification(`${fromName}`, { 
+                                body,
+                                icon: '/static/images/fav.png',
+                                badge: '/static/images/fav.png',
+                                tag: 'chat-message',
+                                requireInteraction: false,
+                                silent: false
+                            });
+                            
+                            // Auto-close notification after 4 seconds
+                            setTimeout(() => { 
+                                try { n.close(); } catch (_) {} 
+                            }, 4000);
+                            
+                            // Focus the window when notification is clicked
+                            n.onclick = function() {
+                                window.focus();
+                                n.close();
+                            };
+                        }
                     }
-                    // Play a short tone when page is visible or hidden (browsers require user gesture; will work after first interaction)
+                    
+                    // Always play a tone for incoming messages (if user has interacted with the page)
                     this.playTone();
-                } catch (_) {}
+                } catch (error) {
+                    console.error('Error showing notification:', error);
+                }
             }
 
             playTone() {
@@ -1031,6 +1056,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Add chat-active class to body to prevent page scrolling and hide bottom nav
             document.body.classList.add('chat-active');
+            
+            // Ensure notifications are properly set up
+            if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                // Request notification permission if not already granted/denied
+                Notification.requestPermission().then(permission => {
+                    console.log('Notification permission:', permission);
+                    localStorage.setItem('notificationPermission', permission);
+                });
+            }
+            
             window.ultraFastChatApp = new UltraFastChatApp();
             
             const chatMessages = document.getElementById('chatMessages');

@@ -37,6 +37,33 @@
     <!-- PWA Utilities -->
     <script src="{{ url_for('static', filename='js/pwa-utils.js') }}" defer></script>
     
+    <!-- Notification Request Modal -->
+    <div id="notificationRequestModal" class="notification-request-modal" style="display: none;">
+        <div class="notification-request-backdrop"></div>
+        <div class="notification-request-content">
+            <div class="notification-request-header">
+                <i class="fas fa-bell"></i>
+                <h3>Stay Connected!</h3>
+            </div>
+            <div class="notification-request-body">
+                <p>Get instant notifications when:</p>
+                <ul>
+                    <li><i class="fas fa-comment"></i> Someone sends you a message</li>
+                    <li><i class="fas fa-heart"></i> Someone likes your posts</li>
+                    <li><i class="fas fa-user-plus"></i> Someone wants to be your friend</li>
+                </ul>
+            </div>
+            <div class="notification-request-actions">
+                <button class="btn btn-primary" id="enableNotificationsBtn">
+                    <i class="fas fa-bell"></i> Enable Notifications
+                </button>
+                <button class="btn btn-secondary" id="notNowBtn">
+                    Not Now
+                </button>
+            </div>
+        </div>
+    </div>
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -191,6 +218,92 @@
         if (window.matchMedia('(display-mode: standalone)').matches || 
             window.navigator.standalone === true) {
             document.body.classList.add('standalone');
+        }
+
+        // Notification Request System - Show only once
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user has already been asked for notifications
+            const notificationRequested = localStorage.getItem('notificationRequested');
+            const notificationPermission = localStorage.getItem('notificationPermission');
+            
+            // Only show notification request if:
+            // 1. Not already requested OR permission is 'default'
+            // 2. Notifications are supported
+            // 3. User hasn't explicitly denied
+            if ((!notificationRequested || notificationPermission === 'default') && 
+                'Notification' in window && 
+                Notification.permission !== 'denied') {
+                
+                // Wait a bit for the page to load, then show the request
+                setTimeout(() => {
+                    showNotificationRequest();
+                }, 2000);
+            }
+        });
+
+        function showNotificationRequest() {
+            const modal = document.getElementById('notificationRequestModal');
+            if (modal) {
+                modal.style.display = 'block';
+                
+                // Add event listeners
+                const enableBtn = document.getElementById('enableNotificationsBtn');
+                const notNowBtn = document.getElementById('notNowBtn');
+                const backdrop = modal.querySelector('.notification-request-backdrop');
+                
+                enableBtn.addEventListener('click', async () => {
+                    try {
+                        if (window.pwaUtils && window.pwaUtils.notificationManager) {
+                            await window.pwaUtils.notificationManager.requestPermission();
+                        } else {
+                            // Fallback to basic notification request
+                            const permission = await Notification.requestPermission();
+                            localStorage.setItem('notificationPermission', permission);
+                        }
+                        hideNotificationRequest();
+                        showNotificationSuccess('Notifications enabled successfully!');
+                    } catch (error) {
+                        console.error('Error requesting notification permission:', error);
+                        hideNotificationRequest();
+                    }
+                });
+                
+                notNowBtn.addEventListener('click', () => {
+                    hideNotificationRequest();
+                    localStorage.setItem('notificationRequested', 'true');
+                    localStorage.setItem('notificationPermission', 'default');
+                });
+                
+                backdrop.addEventListener('click', () => {
+                    hideNotificationRequest();
+                    localStorage.setItem('notificationRequested', 'true');
+                    localStorage.setItem('notificationPermission', 'default');
+                });
+            }
+        }
+
+        function hideNotificationRequest() {
+            const modal = document.getElementById('notificationRequestModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function showNotificationSuccess(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification-toast success';
+            notification.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
         }
     </script>
     

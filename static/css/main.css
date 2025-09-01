@@ -79,12 +79,267 @@ body {
     transition: height 0.3s ease;
 }
 
+/* Mobile-first viewport handling */
+@media screen and (max-width: 768px) {
+    .chat-container {
+        /* Ensure full mobile viewport usage */
+        height: 100vh;
+        height: 100dvh;
+        height: 100svh;
+        width: 100vw;
+        /* Prevent any unwanted scrolling */
+        overflow: hidden;
+        /* Handle mobile keyboard properly */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+    
+    .chat-header {
+        /* Ensure header is properly positioned for mobile */
+        padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+        padding-bottom: var(--space-4);
+        /* Ensure header stays visible */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1001;
+        /* Mobile-specific height */
+        min-height: calc(60px + env(safe-area-inset-top));
+    }
+    
+    .chat-messages {
+        /* Ensure messages area is properly positioned */
+        padding-top: calc(var(--chat-header-h, 80px) + var(--space-5));
+        padding-bottom: calc(var(--chat-input-h, 88px) + env(safe-area-inset-bottom) + 90px);
+        /* Full height minus header and input */
+        height: calc(100vh - var(--chat-header-h, 80px) - var(--chat-input-h, 88px));
+        height: calc(100dvh - var(--chat-header-h, 80px) - var(--chat-input-h, 88px));
+        height: calc(100svh - var(--chat-header-h, 80px) - var(--chat-input-h, 88px));
+        /* Ensure proper scrolling */
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .chat-input {
+        /* Ensure input is properly positioned for mobile */
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1002;
+        /* Mobile-specific padding */
+        padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+        /* Ensure input stays above keyboard */
+        min-height: calc(60px + env(safe-area-inset-bottom));
+    }
+    
+    /* Ensure proper touch targets on mobile */
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .chat-input .form-control {
+        min-height: 44px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    /* Ensure proper spacing for mobile */
+    .message {
+        margin-bottom: var(--space-3);
+    }
+    
+    .message-content {
+        max-width: 85%;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+}
+
+/* Handle mobile keyboard and viewport changes */
+@media screen and (max-height: 600px) {
+    /* When mobile keyboard is open */
+    .chat-container {
+        height: 100vh;
+        height: 100dvh;
+        height: 100svh;
+    }
+    
+    .chat-messages {
+        /* Reduce padding when keyboard is open */
+        padding-bottom: calc(var(--chat-input-h, 88px) + 50px);
+        /* Ensure messages are still scrollable */
+        height: calc(100vh - var(--chat-header-h, 80px) - var(--chat-input-h, 88px));
+        height: calc(100dvh - var(--chat-header-h, 80px) - var(--chat-input-h, 88px));
+        height: calc(100svh - var(--chat-header-h, 80px) - var(--chat-input-h, 88px));
+    }
+    
+    .chat-input {
+        /* Ensure input stays visible above keyboard */
+        bottom: 0;
+        padding-bottom: var(--space-4);
+    }
+}
+
+/* Notification Request Modal */
+.notification-request-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+}
+
+.notification-request-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+}
+
+.notification-request-content {
+    position: relative;
+    background: var(--black);
+    border: 1px solid var(--gray-800);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: slideInUp 0.3s ease-out;
+}
+
+.notification-request-header {
+    margin-bottom: var(--space-5);
+}
+
+.notification-request-header i {
+    font-size: 3rem;
+    color: var(--gray-400);
+    margin-bottom: var(--space-3);
+}
+
+.notification-request-header h3 {
+    color: var(--white);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.notification-request-body {
+    margin-bottom: var(--space-5);
+}
+
+.notification-request-body p {
+    color: var(--gray-400);
+    margin-bottom: var(--space-4);
+    font-size: 1rem;
+}
+
+.notification-request-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.notification-request-body li {
+    color: var(--gray-300);
+    margin-bottom: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 0.9rem;
+}
+
+.notification-request-body li i {
+    color: var(--gray-500);
+    width: 16px;
+    text-align: center;
+}
+
+.notification-request-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.notification-request-actions .btn {
+    width: 100%;
+    padding: var(--space-4);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Notification Toast */
+.notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--black);
+    border: 1px solid var(--gray-800);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideInRight 0.3s ease-out;
+}
+
+.notification-toast.success {
+    border-color: var(--gray-700);
+}
+
+.notification-toast i {
+    color: var(--gray-400);
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 /* Prevent body scroll when chat is active */
 body.chat-active {
     overflow: hidden;
     position: fixed;
     width: 100%;
     height: 100%;
+    height: 100vh;
+    height: 100dvh;
+    height: 100svh;
 }
 
 /* Typography - Clean and Minimal */
@@ -1443,10 +1698,6 @@ body.chat-active .bottom-nav {
 .navbar-meow .panel .content { display: flex; gap: var(--space-2); padding: var(--space-2) var(--space-5); }
 .navbar-meow .panel .link { padding: var(--space-2) var(--space-3); text-decoration: none; color: var(--white); border-radius: var(--radius-md); }
 .navbar-meow .panel .link:hover { background: var(--gray-800); }
-.chat-container {
-    background: var(--black);
-    border-radius: 0;
-}
 
 .empty-comments {
     text-align: center;
@@ -1476,6 +1727,7 @@ body.chat-active .bottom-nav {
     border: none;
     height: 100vh;
     height: 100dvh;
+    height: 100svh;
     margin-top: 0;
     display: flex;
     flex-direction: column;
@@ -1483,17 +1735,23 @@ body.chat-active .bottom-nav {
     box-shadow: none;
     position: relative;
     isolation: isolate;
-    /* Ensure proper scroll behavior */
+    /* Mobile-first: ensure proper scroll behavior */
     min-height: 100vh;
     min-height: 100dvh;
+    min-height: 100svh;
     /* Prevent any unwanted scrolling */
     overscroll-behavior: contain;
     /* Handle mobile keyboard properly */
-    height: 100svh; /* Support for modern mobile browsers */
     /* Ensure container adapts to mobile keyboard */
-    min-height: 100svh;
     /* Handle mobile viewport changes smoothly */
     transition: height 0.3s ease;
+    /* Mobile-first: ensure proper positioning */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
 }
 
 /* Chat Header - Modern & Clean */
@@ -1506,12 +1764,19 @@ body.chat-active .bottom-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 1001;
     /* Ensure header doesn't interfere with scrolling */
     backdrop-filter: blur(10px);
     background: rgba(0, 0, 0, 0.98);
+    /* Mobile-first: ensure header is properly positioned */
+    height: auto;
+    min-height: calc(60px + env(safe-area-inset-top));
+    /* Ensure header stays above content */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .chat-header .user-info {
@@ -1572,12 +1837,15 @@ body.chat-active .bottom-nav {
     overflow-y: auto;
     overflow-x: hidden;
     padding: var(--space-5);
+    padding-top: calc(var(--chat-header-h, 80px) + var(--space-5));
     padding-bottom: calc(var(--chat-input-h, 88px) + 90px);
     background: var(--gray-900);
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     position: relative;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh;
+    height: 100svh;
     min-height: 0;
     /* Prevent flickering and ensure smooth scrolling */
     will-change: scroll-position;
@@ -1589,7 +1857,7 @@ body.chat-active .bottom-nav {
     padding-bottom: calc(var(--chat-input-h, 88px) + env(safe-area-inset-bottom) + 90px);
     /* Ensure messages are always visible above input bar */
     margin-bottom: 0;
-    /* Ensure messages area adapts to mobile keyboard */
+    /* Mobile-first: ensure messages area adapts to mobile keyboard */
     min-height: calc(100vh - 200px);
     min-height: calc(100dvh - 200px);
     min-height: calc(100svh - 200px);
@@ -1812,7 +2080,7 @@ body.chat-active .bottom-nav {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
     /* Handle mobile keyboard properly */
     transform: translateZ(0);
-    /* Ensure input stays visible above mobile keyboard */
+    /* Mobile-first: ensure input stays visible above mobile keyboard */
     bottom: env(safe-area-inset-bottom);
     /* Ensure input is always above messages */
     z-index: 1002;
@@ -1820,6 +2088,8 @@ body.chat-active .bottom-nav {
     transition: bottom 0.3s ease;
     /* Ensure input has solid background */
     border-bottom: 1px solid var(--gray-800);
+    /* Mobile-first: ensure proper height calculation */
+    min-height: calc(60px + env(safe-area-inset-bottom));
 }
 
 .chat-input form {
