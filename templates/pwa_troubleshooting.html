@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}PWA Troubleshooting - meowCHAT{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="dashboard-inner">
+        <div class="card">
+            <div class="card-header">
+                <h3>🔧 PWA Troubleshooting</h3>
+                <p>Fix the dark screen issue in PWA mode</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h4>Issue Identified</h4>
+                    <p>The dark screen appears only in PWA mode because the service worker is caching content incorrectly.</p>
+                </div>
+                
+                <div class="mt-4">
+                    <h4>Quick Fix Steps</h4>
+                    <ol>
+                        <li><strong>Clear Browser Cache:</strong>
+                            <ul>
+                                <li>Open Chrome/Edge DevTools (F12)</li>
+                                <li>Right-click the refresh button</li>
+                                <li>Select "Empty Cache and Hard Reload"</li>
+                            </ul>
+                        </li>
+                        <li><strong>Unregister Service Worker:</strong>
+                            <ul>
+                                <li>Go to DevTools → Application tab</li>
+                                <li>Click "Service Workers" in left sidebar</li>
+                                <li>Click "Unregister" for the service worker</li>
+                                <li>Refresh the page</li>
+                            </ul>
+                        </li>
+                        <li><strong>Reinstall PWA:</strong>
+                            <ul>
+                                <li>Uninstall the PWA from your device</li>
+                                <li>Visit the website again</li>
+                                <li>Reinstall the PWA</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="mt-4">
+                    <h4>Automatic Fix</h4>
+                    <p>Click the button below to trigger a service worker update:</p>
+                    <button onclick="updateServiceWorker()" class="btn btn-primary">Update Service Worker</button>
+                    <button onclick="clearAllCaches()" class="btn btn-danger">Clear All Caches</button>
+                </div>
+                
+                <div class="mt-4">
+                    <h4>Status Check</h4>
+                    <div id="pwaStatus">Checking...</div>
+                </div>
+                
+                <div class="mt-4">
+                    <h4>Test Links</h4>
+                    <ul>
+                        <li><a href="/dashboard" target="_blank">Regular Dashboard</a> (should work)</li>
+                        <li><a href="/emergency-dashboard" target="_blank">Emergency Dashboard</a></li>
+                        <li><a href="/static-test" target="_blank">Static File Test</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // PWA troubleshooting functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        checkPWAStatus();
+    });
+    
+    async function checkPWAStatus() {
+        const statusDiv = document.getElementById('pwaStatus');
+        
+        try {
+            // Check if service worker is registered
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-info">
+                            <strong>Service Worker:</strong> Registered<br>
+                            <strong>Version:</strong> ${registration.scope}<br>
+                            <strong>State:</strong> ${registration.active ? 'Active' : 'Inactive'}
+                        </div>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>Service Worker:</strong> Not registered
+                        </div>
+                    `;
+                }
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Service Worker:</strong> Not supported
+                    </div>
+                `;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> ${error.message}
+                </div>
+            `;
+        }
+    }
+    
+    async function updateServiceWorker() {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.update();
+                    alert('Service worker update triggered! Please refresh the page.');
+                } else {
+                    alert('No service worker found to update.');
+                }
+            } else {
+                alert('Service workers not supported.');
+            }
+        } catch (error) {
+            alert('Error updating service worker: ' + error.message);
+        }
+    }
+    
+    async function clearAllCaches() {
+        try {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(cacheName => {
+                        console.log('Deleting cache:', cacheName);
+                        return caches.delete(cacheName);
+                    })
+                );
+                alert('All caches cleared! Please refresh the page.');
+            } else {
+                alert('Cache API not supported.');
+            }
+        } catch (error) {
+            alert('Error clearing caches: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}

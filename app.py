@@ -111,6 +111,14 @@ def static_images(filename):
         return f"Error serving image file: {filename}", 500
 
 # Debug route to check static file serving
+@app.route('/pwa-troubleshooting')
+def pwa_troubleshooting():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    return render_template('pwa_troubleshooting.html', user=user)
+
 @app.route('/emergency-dashboard')
 def emergency_dashboard():
     if 'user_id' not in session:
@@ -208,7 +216,7 @@ def offline():
     return render_template('offline.html')
 
 # PWA Version Management
-PWA_VERSION = 'v1.0.1'  # Update this when you make changes
+PWA_VERSION = 'v1.0.2'  # Update this when you make changes
 
 @app.route('/api/pwa/version')
 def pwa_version():
@@ -222,6 +230,19 @@ def pwa_version():
             'background_sync': True,
             'install_prompt': True
         }
+    })
+
+@app.route('/api/pwa/clear-cache', methods=['POST'])
+def clear_pwa_cache():
+    """Force clear PWA cache"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    return jsonify({
+        'message': 'Cache clear request sent',
+        'instructions': 'Please refresh the page and clear browser cache manually',
+        'version': PWA_VERSION,
+        'timestamp': datetime.utcnow().isoformat()
     })
 
 @app.route('/api/pwa/update', methods=['POST'])

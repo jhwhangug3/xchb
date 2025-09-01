@@ -1,6 +1,6 @@
-const CACHE_NAME = 'meowchat-v1.0.1';
-const STATIC_CACHE = 'meowchat-static-v1.0.1';
-const DYNAMIC_CACHE = 'meowchat-dynamic-v1.0.1';
+const CACHE_NAME = 'meowchat-v1.0.2';
+const STATIC_CACHE = 'meowchat-static-v1.0.2';
+const DYNAMIC_CACHE = 'meowchat-dynamic-v1.0.2';
 
 // Files to cache for offline functionality
 const STATIC_FILES = [
@@ -11,6 +11,7 @@ const STATIC_FILES = [
   '/create-post',
   '/profile',
   '/offline',
+  '/emergency-dashboard',
   '/static/css/main.css',
   '/static/images/fav.png',
   '/static/images/nav.png',
@@ -58,6 +59,65 @@ self.addEventListener('activate', (event) => {
       return self.clients.claim();
     })
   );
+});
+
+// Fetch event - handle requests
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+  
+  // Skip non-HTTP requests
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+  
+  // Handle different types of requests
+  if (url.pathname === '/dashboard' || url.pathname === '/') {
+    // For dashboard, always try network first, fallback to cache
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // If network request succeeds, cache it
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // If network fails, try cache
+          return caches.match(request);
+        })
+    );
+  } else if (url.pathname.startsWith('/static/') || 
+             url.pathname === '/manifest.json' || 
+             url.pathname === '/sw.js') {
+    // For static files, try cache first, fallback to network
+    event.respondWith(
+      caches.match(request)
+        .then((response) => {
+          if (response) {
+            return response;
+          }
+          return fetch(request);
+        })
+    );
+  } else {
+    // For other requests, try network first, fallback to cache
+    event.respondWith(
+      fetch(request)
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+  }
 });
 
 // Clean up old caches
