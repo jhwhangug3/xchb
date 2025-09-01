@@ -118,39 +118,27 @@ class PWAUtils {
     setupOnlineOfflineHandlers() {
         window.addEventListener('online', () => {
             this.isOnline = true;
-            this.hideOfflineIndicator();
             this.syncOfflineData();
         });
 
         window.addEventListener('offline', () => {
             this.isOnline = false;
-            this.showOfflineIndicator();
         });
     }
 
     setupOfflineIndicator() {
-        // Create offline indicator if it doesn't exist
-        if (!document.getElementById('offlineIndicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'offlineIndicator';
-            indicator.className = 'offline-indicator';
-            indicator.innerHTML = '<i class="fas fa-wifi-slash"></i> You are offline';
-            document.body.appendChild(indicator);
-        }
+        // Don't create offline indicator automatically
+        // Let the existing offline indicator handle it
     }
 
     showOfflineIndicator() {
-        const indicator = document.getElementById('offlineIndicator');
-        if (indicator) {
-            indicator.classList.add('show');
-        }
+        // Don't show offline indicator automatically
+        // The existing system handles this
     }
 
     hideOfflineIndicator() {
-        const indicator = document.getElementById('offlineIndicator');
-        if (indicator) {
-            indicator.classList.remove('show');
-        }
+        // Don't hide offline indicator automatically
+        // The existing system handles this
     }
 
     setupNetworkStatus() {
@@ -159,10 +147,7 @@ class PWAUtils {
             if (navigator.onLine !== this.isOnline) {
                 this.isOnline = navigator.onLine;
                 if (this.isOnline) {
-                    this.hideOfflineIndicator();
                     this.syncOfflineData();
-                } else {
-                    this.showOfflineIndicator();
                 }
             }
         }, 1000);
@@ -260,33 +245,13 @@ class PWAUtils {
         }
     }
 
-    // App shortcuts
+    // App shortcuts - Disabled to avoid redundancy with bottom navigation
     setupAppShortcuts() {
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            this.createShortcuts();
-        }
+        // Don't create app shortcuts since bottom navigation already exists
     }
 
     createShortcuts() {
-        const shortcuts = [
-            { icon: 'fas fa-home', url: '/dashboard', title: 'Home' },
-            { icon: 'fas fa-comment', url: '/messaging', title: 'Messages' },
-            { icon: 'fas fa-plus', url: '/create-post', title: 'New Post' }
-        ];
-
-        const shortcutsContainer = document.createElement('div');
-        shortcutsContainer.className = 'pwa-shortcuts';
-
-        shortcuts.forEach(shortcut => {
-            const button = document.createElement('button');
-            button.className = 'pwa-shortcut';
-            button.innerHTML = `<i class="${shortcut.icon}"></i>`;
-            button.title = shortcut.title;
-            button.onclick = () => window.location.href = shortcut.url;
-            shortcutsContainer.appendChild(button);
-        });
-
-        document.body.appendChild(shortcutsContainer);
+        // Disabled - bottom navigation handles this
     }
 
     // Splash screen

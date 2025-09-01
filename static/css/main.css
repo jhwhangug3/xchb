@@ -3099,26 +3099,7 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Offline Indicator */
-.offline-indicator {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #dc3545;
-    color: white;
-    text-align: center;
-    padding: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    z-index: 1001;
-    transform: translateY(-100%);
-    transition: transform 0.3s ease;
-}
-
-.offline-indicator.show {
-    transform: translateY(0);
-}
+/* Offline Indicator - Removed to keep original design */
 
 /* PWA Loading Spinner */
 .pwa-loading {
@@ -3155,12 +3136,12 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
     top: 16px;
     left: 16px;
     right: 16px;
-    background: var(--primary);
+    background: var(--black);
     color: white;
     border-radius: 12px;
     padding: 16px;
     z-index: 1000;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -3192,35 +3173,7 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
     }
 }
 
-/* PWA Shortcuts */
-.pwa-shortcuts {
-    position: fixed;
-    bottom: 100px;
-    right: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 999;
-}
-
-.pwa-shortcut {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
-    transition: transform 0.2s ease;
-}
-
-.pwa-shortcut:hover {
-    transform: scale(1.1);
-}
+/* PWA Shortcuts - Removed to avoid redundancy with bottom navigation */
 
 /* PWA Splash Screen */
 .pwa-splash {
@@ -3282,16 +3235,7 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
         font-size: 0.9rem;
     }
     
-    .pwa-shortcuts {
-        bottom: 90px;
-        right: 12px;
-    }
-    
-    .pwa-shortcut {
-        width: 48px;
-        height: 48px;
-        font-size: 1rem;
-    }
+    /* PWA shortcuts removed - bottom navigation handles this */
 }
 
 /* PWA Theme Colors */
