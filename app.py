@@ -1030,6 +1030,45 @@ def send_friend_request():
         message=message
     )
     db.session.add(friend_request)
+    db.session.flush()  # Get request ID
+    
+    # Send push notification to receiver
+    if PUSH_AVAILABLE and VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
+        try:
+            # Get receiver's push subscriptions
+            subs = PushSubscription.query.filter_by(user_id=receiver_id).all()
+            if subs:
+                # Get sender's info
+                sender = User.query.get(session['user_id'])
+                sender_name = sender.first_name or sender.username
+                
+                payload = json.dumps({
+                    'title': 'Friend request',
+                    'body': f'{sender_name} sent you a friend request',
+                    'request_id': friend_request.id,
+                    'sender_id': session['user_id'],
+                    'url': url_for('notifications', _external=True)
+                })
+                
+                for s in subs:
+                    try:
+                        webpush(
+                            subscription_info={
+                                'endpoint': s.endpoint,
+                                'keys': {'p256dh': s.p256dh, 'auth': s.auth}
+                            },
+                            data=payload,
+                            vapid_private_key=VAPID_PRIVATE_KEY,
+                            vapid_claims=VAPID_CLAIMS
+                        )
+                    except WebPushException as e:
+                        try:
+                            print(f"WebPush failed for friend request notification: {e}")
+                        except Exception:
+                            pass
+        except Exception as e:
+            print(f"Error sending friend request notification: {e}")
+    
     db.session.commit()
     
     return jsonify({'message': 'Friend request sent successfully'})
@@ -1882,6 +1921,43 @@ def toggle_post_like(post_id):
             like = PostLike(user_id=session['user_id'], post_id=post_id)
             db.session.add(like)
             liked = True
+            
+            # Send push notification to post owner (if not liking own post)
+            if post.user_id != session['user_id'] and PUSH_AVAILABLE and VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
+                try:
+                    # Get post owner's push subscriptions
+                    subs = PushSubscription.query.filter_by(user_id=post.user_id).all()
+                    if subs:
+                        # Get liker's info
+                        liker = User.query.get(session['user_id'])
+                        liker_name = liker.first_name or liker.username
+                        
+                        payload = json.dumps({
+                            'title': 'New like',
+                            'body': f'{liker_name} liked your post',
+                            'post_id': post_id,
+                            'liker_id': session['user_id'],
+                            'url': url_for('dashboard', _external=True)
+                        })
+                        
+                        for s in subs:
+                            try:
+                                webpush(
+                                    subscription_info={
+                                        'endpoint': s.endpoint,
+                                        'keys': {'p256dh': s.p256dh, 'auth': s.auth}
+                                    },
+                                    data=payload,
+                                    vapid_private_key=VAPID_PRIVATE_KEY,
+                                    vapid_claims=VAPID_CLAIMS
+                                )
+                            except WebPushException as e:
+                                try:
+                                    print(f"WebPush failed for like notification: {e}")
+                                except Exception:
+                                    pass
+                except Exception as e:
+                    print(f"Error sending like notification: {e}")
         
         db.session.commit()
         
@@ -1922,6 +1998,49 @@ def comment_on_post(post_id):
             content=content
         )
         db.session.add(comment)
+        db.session.flush()  # Get comment ID
+        
+        # Send push notification to post owner (if not commenting on own post)
+        if post.user_id != session['user_id'] and PUSH_AVAILABLE and VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
+            try:
+                # Get post owner's push subscriptions
+                subs = PushSubscription.query.filter_by(user_id=post.user_id).all()
+                if subs:
+                    # Get commenter's info
+                    commenter = User.query.get(session['user_id'])
+                    commenter_name = commenter.first_name or commenter.username
+                    
+                    # Truncate comment content for notification
+                    comment_preview = content[:50] + '...' if len(content) > 50 else content
+                    
+                    payload = json.dumps({
+                        'title': 'New comment',
+                        'body': f'{commenter_name}: {comment_preview}',
+                        'post_id': post_id,
+                        'comment_id': comment.id,
+                        'commenter_id': session['user_id'],
+                        'url': url_for('dashboard', _external=True)
+                    })
+                    
+                    for s in subs:
+                        try:
+                            webpush(
+                                subscription_info={
+                                    'endpoint': s.endpoint,
+                                    'keys': {'p256dh': s.p256dh, 'auth': s.auth}
+                                },
+                                data=payload,
+                                vapid_private_key=VAPID_PRIVATE_KEY,
+                                vapid_claims=VAPID_CLAIMS
+                            )
+                        except WebPushException as e:
+                            try:
+                                print(f"WebPush failed for comment notification: {e}")
+                            except Exception:
+                                pass
+            except Exception as e:
+                print(f"Error sending comment notification: {e}")
+        
         db.session.commit()
         
         # Get updated comment count
@@ -2266,6 +2385,53 @@ def create_test_comment():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+# Test push notification endpoint
+@app.route('/api/debug/test-notification', methods=['POST'])
+def test_push_notification():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if not PUSH_AVAILABLE or not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        return jsonify({'error': 'Push notifications not configured'}), 503
+    
+    try:
+        # Get current user's push subscriptions
+        subs = PushSubscription.query.filter_by(user_id=session['user_id']).all()
+        if not subs:
+            return jsonify({'error': 'No push subscriptions found for user'}), 404
+        
+        # Send test notification
+        payload = json.dumps({
+            'title': 'Test Notification',
+            'body': 'This is a test push notification from meowCHAT!',
+            'url': url_for('dashboard', _external=True)
+        })
+        
+        success_count = 0
+        for s in subs:
+            try:
+                webpush(
+                    subscription_info={
+                        'endpoint': s.endpoint,
+                        'keys': {'p256dh': s.p256dh, 'auth': s.auth}
+                    },
+                    data=payload,
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims=VAPID_CLAIMS
+                )
+                success_count += 1
+            except WebPushException as e:
+                print(f"WebPush test failed: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Test notification sent to {success_count} device(s)',
+            'total_subscriptions': len(subs),
+            'successful_sends': success_count
+        })
+    except Exception as e:
+        return jsonify({'error': f'Test failed: {str(e)}'}), 500
 
 # Debug endpoint to check database
 @app.route('/api/debug/comments')

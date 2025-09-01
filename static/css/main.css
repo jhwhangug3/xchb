@@ -3417,3 +3417,179 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
         color: var(--black);
     }
 }
+
+/* Notification Permission Prompt */
+.notification-permission-prompt {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    background: var(--black);
+    border: 1px solid var(--gray-800);
+    border-radius: 16px;
+    padding: 20px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    animation: slideDown 0.3s ease-out;
+}
+
+.notification-permission-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--white);
+}
+
+.notification-permission-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: var(--gray-800);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-permission-icon i {
+    font-size: 1.5rem;
+    color: var(--white);
+}
+
+.notification-permission-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-permission-text h4 {
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--white);
+}
+
+.notification-permission-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--gray-400);
+    line-height: 1.4;
+}
+
+.notification-permission-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.notification-permission-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.notification-permission-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    color: var(--gray-400);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.notification-permission-close:hover {
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Notification Success Message */
+.notification-success {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    background: var(--black);
+    border: 1px solid var(--gray-800);
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    animation: slideDown 0.3s ease-out;
+}
+
+.notification-success-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--white);
+}
+
+.notification-success-content i {
+    font-size: 1.2rem;
+    color: #22c55e;
+}
+
+.notification-success-content span {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Mobile optimizations for notification prompts */
+@media (max-width: 480px) {
+    .notification-permission-prompt {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding: 16px;
+    }
+    
+    .notification-permission-content {
+        gap: 12px;
+    }
+    
+    .notification-permission-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .notification-permission-icon i {
+        font-size: 1.2rem;
+    }
+    
+    .notification-permission-text h4 {
+        font-size: 1rem;
+    }
+    
+    .notification-permission-text p {
+        font-size: 0.85rem;
+    }
+    
+    .notification-permission-actions {
+        gap: 6px;
+    }
+    
+    .notification-permission-actions .btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        min-width: 70px;
+    }
+    
+    .notification-success {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding: 12px;
+    }
+}

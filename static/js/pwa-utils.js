@@ -4,6 +4,7 @@ class PWAUtils {
         this.isOnline = navigator.onLine;
         this.currentVersion = 'v1.0.1';
         this.updateCheckInterval = null;
+        this.pushSubscription = null;
         this.init();
     }
 
@@ -14,7 +15,8 @@ class PWAUtils {
         this.setupBackgroundSync();
         this.setupAutoUpdates();
         this.setupServiceWorkerMessages();
-        this.setupInstallPrompt(); // Add install prompt setup
+        this.setupInstallPrompt();
+        this.setupPushNotifications(); // Add push notification setup
     }
 
     setupAutoUpdates() {
@@ -437,6 +439,189 @@ class PWAUtils {
         //     headers: { 'Content-Type': 'application/json' },
         //     body: JSON.stringify(data)
         // });
+    }
+
+    // Push Notification Setup
+    async setupPushNotifications() {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Check if we already have a subscription
+                this.pushSubscription = await registration.pushManager.getSubscription();
+                
+                if (!this.pushSubscription) {
+                    // Request notification permission
+                    const permission = await Notification.requestPermission();
+                    
+                    if (permission === 'granted') {
+                        await this.subscribeToPushNotifications(registration);
+                    }
+                } else {
+                    // We already have a subscription, register it with the server
+                    await this.registerSubscriptionWithServer(this.pushSubscription);
+                }
+                
+                // Listen for subscription changes
+                registration.pushManager.addEventListener('pushsubscriptionchange', () => {
+                    this.handleSubscriptionChange(registration);
+                });
+                
+            } catch (error) {
+                console.error('Push notification setup failed:', error);
+            }
+        }
+    }
+
+    async subscribeToPushNotifications(registration) {
+        try {
+            // Get VAPID public key from server
+            const response = await fetch('/api/notifications/vapid-public-key');
+            const data = await response.json();
+            
+            if (!data.key) {
+                console.error('VAPID key not available');
+                return;
+            }
+            
+            // Convert VAPID key to Uint8Array
+            const vapidPublicKey = this.urlBase64ToUint8Array(data.key);
+            
+            // Subscribe to push notifications
+            this.pushSubscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: vapidPublicKey
+            });
+            
+            // Register subscription with server
+            await this.registerSubscriptionWithServer(this.pushSubscription);
+            
+            console.log('Push notification subscription successful');
+            
+        } catch (error) {
+            console.error('Failed to subscribe to push notifications:', error);
+        }
+    }
+
+    async registerSubscriptionWithServer(subscription) {
+        try {
+            const response = await fetch('/api/notifications/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    subscription: {
+                        endpoint: subscription.endpoint,
+                        keys: {
+                            p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')),
+                            auth: this.arrayBufferToBase64(subscription.getKey('auth'))
+                        }
+                    }
+                })
+            });
+            
+            if (response.ok) {
+                console.log('Subscription registered with server');
+            } else {
+                console.error('Failed to register subscription with server');
+            }
+        } catch (error) {
+            console.error('Error registering subscription:', error);
+        }
+    }
+
+    async handleSubscriptionChange(registration) {
+        try {
+            // Get new subscription
+            const newSubscription = await registration.pushManager.getSubscription();
+            
+            if (newSubscription) {
+                // Register new subscription
+                await this.registerSubscriptionWithServer(newSubscription);
+            } else {
+                // Unsubscribe from server
+                await this.unsubscribeFromServer();
+            }
+        } catch (error) {
+            console.error('Error handling subscription change:', error);
+        }
+    }
+
+    async unsubscribeFromServer() {
+        try {
+            if (this.pushSubscription) {
+                const response = await fetch('/api/notifications/unsubscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        subscription: {
+                            endpoint: this.pushSubscription.endpoint
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('Unsubscribed from server');
+                }
+            }
+        } catch (error) {
+            console.error('Error unsubscribing from server:', error);
+        }
+    }
+
+    // Utility functions for VAPID key conversion
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    // Manual subscription/unsubscription methods for user control
+    async subscribeToNotifications() {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            const registration = await navigator.serviceWorker.ready;
+            const permission = await Notification.requestPermission();
+            
+            if (permission === 'granted') {
+                await this.subscribeToPushNotifications(registration);
+                return true;
+            } else {
+                console.log('Notification permission denied');
+                return false;
+            }
+        }
+        return false;
+    }
+
+    async unsubscribeFromNotifications() {
+        if (this.pushSubscription) {
+            await this.pushSubscription.unsubscribe();
+            await this.unsubscribeFromServer();
+            this.pushSubscription = null;
+            return true;
+        }
+        return false;
     }
 }
 

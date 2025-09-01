@@ -124,6 +124,9 @@
                     <div class="settings-label">Settings</div>
                     <div class="settings-control">
                         <small id="notifStatus" class="text-muted me-auto"></small>
+                        <button id="testNotificationBtn" class="btn btn-outline-info btn-sm me-2" style="display: none;">
+                            <i class="fas fa-bell"></i> Test
+                        </button>
                         <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
                     </div>
                 </li>
@@ -621,6 +624,72 @@
                 console.error('Profile test error:', error);
                 showAlert('Profile test error: ' + error.message, 'error');
             }
+        });
+
+        // Notification settings functionality
+        async function checkNotificationStatus() {
+            const statusEl = document.getElementById('notifStatus');
+            const testBtn = document.getElementById('testNotificationBtn');
+            
+            if (!statusEl) return;
+            
+            try {
+                // Check if notifications are supported
+                if (!('Notification' in window)) {
+                    statusEl.textContent = 'Notifications not supported';
+                    return;
+                }
+                
+                // Check permission status
+                const permission = Notification.permission;
+                if (permission === 'granted') {
+                    statusEl.textContent = 'Notifications enabled';
+                    testBtn.style.display = 'inline-block';
+                    
+                    // Check if we have a push subscription
+                    if ('serviceWorker' in navigator) {
+                        const registration = await navigator.serviceWorker.ready;
+                        const subscription = await registration.pushManager.getSubscription();
+                        if (subscription) {
+                            statusEl.textContent = 'Push notifications active';
+                        } else {
+                            statusEl.textContent = 'Notifications enabled (no push subscription)';
+                        }
+                    }
+                } else if (permission === 'denied') {
+                    statusEl.textContent = 'Notifications blocked';
+                } else {
+                    statusEl.textContent = 'Notifications not enabled';
+                }
+            } catch (error) {
+                console.error('Error checking notification status:', error);
+                statusEl.textContent = 'Error checking status';
+            }
+        }
+
+        // Test notification functionality
+        document.getElementById('testNotificationBtn').addEventListener('click', async function() {
+            try {
+                const res = await fetch('/api/debug/test-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await res.json();
+                if (res.ok) {
+                    showAlert(`Test notification sent! ${data.message}`, 'success');
+                } else {
+                    showAlert('Test failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Test notification error:', error);
+                showAlert('Test failed: ' + error.message, 'error');
+            }
+        });
+
+        // Check notification status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkNotificationStatus();
         });
 
         // Debounced autosave on change
