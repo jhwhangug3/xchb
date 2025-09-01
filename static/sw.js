@@ -1,6 +1,6 @@
-const CACHE_NAME = 'meowchat-v1.0.2';
-const STATIC_CACHE = 'meowchat-static-v1.0.2';
-const DYNAMIC_CACHE = 'meowchat-dynamic-v1.0.2';
+const CACHE_NAME = 'meowchat-v1.0.1';
+const STATIC_CACHE = 'meowchat-static-v1.0.1';
+const DYNAMIC_CACHE = 'meowchat-dynamic-v1.0.1';
 
 // Files to cache for offline functionality
 const STATIC_FILES = [
@@ -11,7 +11,6 @@ const STATIC_FILES = [
   '/create-post',
   '/profile',
   '/offline',
-  '/emergency-dashboard',
   '/static/css/main.css',
   '/static/images/fav.png',
   '/static/images/nav.png',
@@ -39,8 +38,6 @@ self.addEventListener('install', (event) => {
       })
       .catch((error) => {
         console.error('Service Worker install failed:', error);
-        // Don't fail the installation if caching fails
-        return self.skipWaiting();
       })
   );
 });
@@ -53,71 +50,8 @@ self.addEventListener('activate', (event) => {
       cleanOldCaches(),
       checkForUpdates(),
       self.clients.claim()
-    ]).catch((error) => {
-      console.error('Service Worker activation failed:', error);
-      // Don't fail activation if cleanup fails
-      return self.clients.claim();
-    })
+    ])
   );
-});
-
-// Fetch event - handle requests
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-  
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
-  
-  // Skip non-HTTP requests
-  if (!url.protocol.startsWith('http')) {
-    return;
-  }
-  
-  // Handle different types of requests
-  if (url.pathname === '/dashboard' || url.pathname === '/') {
-    // For dashboard, always try network first, fallback to cache
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // If network request succeeds, cache it
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try cache
-          return caches.match(request);
-        })
-    );
-  } else if (url.pathname.startsWith('/static/') || 
-             url.pathname === '/manifest.json' || 
-             url.pathname === '/sw.js') {
-    // For static files, try cache first, fallback to network
-    event.respondWith(
-      caches.match(request)
-        .then((response) => {
-          if (response) {
-            return response;
-          }
-          return fetch(request);
-        })
-    );
-  } else {
-    // For other requests, try network first, fallback to cache
-    event.respondWith(
-      fetch(request)
-        .catch(() => {
-          return caches.match(request);
-        })
-    );
-  }
 });
 
 // Clean up old caches
@@ -291,93 +225,93 @@ self.addEventListener('push', (event) => {
             body,
             icon: '/static/images/fav.png',
             badge: '/static/images/fav.png',
-            data: { url },
-            requireInteraction: true,
-            actions: [
-                {
-                    action: 'open',
-                    title: 'Open',
-                    icon: '/static/images/fav.png'
-                },
-                {
-                    action: 'close',
-                    title: 'Close',
-                    icon: '/static/images/fav.png'
-                }
-            ]
+      data: { url },
+      requireInteraction: true,
+      actions: [
+        {
+          action: 'open',
+          title: 'Open',
+          icon: '/static/images/fav.png'
+        },
+        {
+          action: 'close',
+          title: 'Close',
+          icon: '/static/images/fav.png'
+        }
+      ]
         };
         event.waitUntil(self.registration.showNotification(title, options));
     } catch (e) {
         // Fallback if not JSON
-        event.waitUntil(self.registration.showNotification('meowCHAT', { 
-            body: 'New message',
-            icon: '/static/images/fav.png'
-        }));
+    event.waitUntil(self.registration.showNotification('meowCHAT', { 
+      body: 'New message',
+      icon: '/static/images/fav.png'
+    }));
     }
 });
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
   
-    if (event.action === 'close') {
-        return;
-    }
+  if (event.action === 'close') {
+    return;
+  }
 
     const url = (event.notification.data && event.notification.data.url) || '/dashboard';
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-            // Check if there's already a window/tab open with the target URL
+      // Check if there's already a window/tab open with the target URL
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If so, focus it
             for (const client of clientList) {
-                if (client.url === url && 'focus' in client) {
-                    return client.focus();
-                }
-            }
-            // If so, focus it
-            for (const client of clientList) {
-                if ('focus' in client) {
-                    return client.focus();
-                }
-            }
-            // Otherwise, open a new window/tab
-            if (self.clients.openWindow) {
-                return self.clients.openWindow(url);
-            }
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise, open a new window/tab
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
         })
     );
 });
 
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {
-    if (event.tag === 'background-sync') {
-        event.waitUntil(doBackgroundSync());
-    }
+  if (event.tag === 'background-sync') {
+    event.waitUntil(doBackgroundSync());
+  }
 });
 
 async function doBackgroundSync() {
-    try {
-        // Sync any pending data when connection is restored
-        console.log('Background sync triggered');
-        // Check for updates during background sync
-        await checkForUpdates();
-    } catch (error) {
-        console.error('Background sync failed:', error);
-    }
+  try {
+    // Sync any pending data when connection is restored
+    console.log('Background sync triggered');
+    // Check for updates during background sync
+    await checkForUpdates();
+  } catch (error) {
+    console.error('Background sync failed:', error);
+  }
 }
 
 // Handle message events from main thread
 self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-    
-    if (event.data && event.data.type === 'CHECK_UPDATE') {
-        event.waitUntil(checkForUpdates());
-    }
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CHECK_UPDATE') {
+    event.waitUntil(checkForUpdates());
+  }
 });
 
 // Periodic update checks (every 30 minutes)
 setInterval(() => {
-    checkForUpdates();
+  checkForUpdates();
 }, 30 * 60 * 1000);
 
 

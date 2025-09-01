@@ -10,7 +10,6 @@
   "scope": "/",
   "lang": "en",
   "categories": ["social", "communication", "entertainment"],
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/static/images/fav.png",

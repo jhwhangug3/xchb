@@ -98,10 +98,6 @@ body {
     overscroll-behavior: none;
     /* Handle mobile viewport changes */
     height: 100vh;
-    /* Ensure body is always visible */
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
     height: 100dvh;
     height: 100svh;
     /* Ensure body adapts to mobile keyboard */
@@ -437,10 +433,6 @@ p {
     /* Remove scrollbars completely */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* Internet Explorer 10+ */
-    /* Ensure main content is always visible */
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
 }
 
 /* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
@@ -3539,37 +3531,6 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
 .pwa-splash p {
     opacity: 0.7;
     font-size: 0.9rem;
-}
-
-/* Critical PWA fixes */
-body {
-    /* Ensure body is always visible */
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    /* Prevent any hiding that might cause black screen */
-    background: var(--black) !important;
-    color: var(--white) !important;
-}
-
-/* Ensure PWA loads properly */
-html {
-    /* Prevent any hiding */
-    display: block !important;
-    visibility: visible !important;
-    background: var(--black) !important;
-}
-
-/* Fix for PWA startup issues */
-.dashboard-content,
-.main-content-wrapper {
-    /* Ensure content is visible */
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    /* Prevent any layout issues */
-    min-height: 100vh !important;
-    background: var(--black) !important;
 }
 
 /* Responsive PWA Elements */

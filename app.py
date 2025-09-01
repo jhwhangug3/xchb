@@ -42,181 +42,20 @@ def favicon():
     images_dir = os.path.join(app.static_folder, 'images')
     return send_from_directory(images_dir, 'fav.png', mimetype='image/png')
 
-# Static file routes for Render.com compatibility
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """Serve static files explicitly for Render.com compatibility"""
-    try:
-        file_path = os.path.join(app.static_folder, filename)
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving static file: {filename}, size: {file_size} bytes")
-            return send_from_directory(app.static_folder, filename)
-        else:
-            print(f"Static file not found: {filename}")
-            return f"File not found: {filename}", 404
-    except Exception as e:
-        print(f"Error serving static file {filename}: {e}")
-        return f"Error serving file: {filename}", 500
-
-@app.route('/static/css/<path:filename>')
-def static_css(filename):
-    """Serve CSS files explicitly"""
-    try:
-        css_dir = os.path.join(app.static_folder, 'css')
-        file_path = os.path.join(css_dir, filename)
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving CSS file: {filename}, size: {file_size} bytes")
-            return send_from_directory(css_dir, filename, mimetype='text/css')
-        else:
-            print(f"CSS file not found: {filename}")
-            return f"CSS file not found: {filename}", 404
-    except Exception as e:
-        print(f"Error serving CSS file {filename}: {e}")
-        return f"Error serving CSS file: {filename}", 500
-
-@app.route('/static/js/<path:filename>')
-def static_js(filename):
-    """Serve JavaScript files explicitly"""
-    try:
-        js_dir = os.path.join(app.static_folder, 'js')
-        file_path = os.path.join(js_dir, filename)
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving JS file: {filename}, size: {file_size} bytes")
-            return send_from_directory(js_dir, filename, mimetype='application/javascript')
-        else:
-            print(f"JS file not found: {filename}")
-            return f"JS file not found: {filename}", 404
-    except Exception as e:
-        print(f"Error serving JS file {filename}: {e}")
-        return f"Error serving JS file: {filename}", 500
-
-@app.route('/static/images/<path:filename>')
-def static_images(filename):
-    """Serve image files explicitly"""
-    try:
-        images_dir = os.path.join(app.static_folder, 'images')
-        file_path = os.path.join(images_dir, filename)
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving image file: {filename}, size: {file_size} bytes")
-            return send_from_directory(images_dir, filename)
-        else:
-            print(f"Image file not found: {filename}")
-            return f"Image file not found: {filename}", 404
-    except Exception as e:
-        print(f"Error serving image file {filename}: {e}")
-        return f"Error serving image file: {filename}", 500
-
-# Debug route to check static file serving
-@app.route('/pwa-troubleshooting')
-def pwa_troubleshooting():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user = User.query.get(session['user_id'])
-    return render_template('pwa_troubleshooting.html', user=user)
-
-@app.route('/emergency-dashboard')
-def emergency_dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user = User.query.get(session['user_id'])
-    return render_template('emergency_dashboard.html', user=user)
-
-@app.route('/static-test')
-def static_test():
-    """Test page for static file serving"""
-    return render_template('static_test.html')
-
-@app.route('/debug-static/<path:filename>')
-def debug_static(filename):
-    """Debug route to check static file serving"""
-    try:
-        file_path = os.path.join(app.static_folder, filename)
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            return jsonify({
-                'filename': filename,
-                'exists': True,
-                'size': file_size,
-                'path': file_path,
-                'static_folder': app.static_folder
-            })
-        else:
-            return jsonify({
-                'filename': filename,
-                'exists': False,
-                'static_folder': app.static_folder,
-                'requested_path': file_path
-            })
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'filename': filename,
-            'static_folder': app.static_folder
-        })
-
 @app.route('/manifest.json')
 def manifest():
-    """Serve manifest.json explicitly"""
-    try:
-        file_path = os.path.join(app.static_folder, 'manifest.json')
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving manifest.json, size: {file_size} bytes")
-            return send_from_directory(app.static_folder, 'manifest.json', mimetype='application/json')
-        else:
-            print("Manifest.json not found")
-            return "Manifest not found", 404
-    except Exception as e:
-        print(f"Error serving manifest.json: {e}")
-        return f"Manifest error: {e}", 500
-
-@app.route('/sw.js')
-def service_worker():
-    """Serve service worker explicitly"""
-    try:
-        file_path = os.path.join(app.static_folder, 'sw.js')
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving sw.js, size: {file_size} bytes")
-            return send_from_directory(app.static_folder, 'sw.js', mimetype='application/javascript')
-        else:
-            print("sw.js not found")
-            return "Service worker not found", 404
-    except Exception as e:
-        print(f"Error serving sw.js: {e}")
-        return f"Service worker error: {e}", 500
+    return send_from_directory(app.static_folder, 'manifest.json', mimetype='application/json')
 
 @app.route('/browserconfig.xml')
 def browserconfig():
-    """Serve browserconfig.xml explicitly"""
-    try:
-        file_path = os.path.join(app.static_folder, 'browserconfig.xml')
-        if os.path.exists(file_path):
-            file_size = os.path.getsize(file_path)
-            print(f"Serving browserconfig.xml, size: {file_size} bytes")
-            return send_from_directory(app.static_folder, 'browserconfig.xml', mimetype='application/xml')
-        else:
-            print("browserconfig.xml not found")
-            return "Browser config not found", 404
-    except Exception as e:
-        print(f"Error serving browserconfig.xml: {e}")
-        return f"Browser config error: {e}", 500
-
-# Note: Removed custom routes for manifest.json and browserconfig.xml
-# Flask will serve these files from the static folder automatically
+    return send_from_directory(app.static_folder, 'browserconfig.xml', mimetype='application/xml')
 
 @app.route('/offline')
 def offline():
     return render_template('offline.html')
 
 # PWA Version Management
-PWA_VERSION = 'v1.0.2'  # Update this when you make changes
+PWA_VERSION = 'v1.0.1'  # Update this when you make changes
 
 @app.route('/api/pwa/version')
 def pwa_version():
@@ -230,19 +69,6 @@ def pwa_version():
             'background_sync': True,
             'install_prompt': True
         }
-    })
-
-@app.route('/api/pwa/clear-cache', methods=['POST'])
-def clear_pwa_cache():
-    """Force clear PWA cache"""
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    return jsonify({
-        'message': 'Cache clear request sent',
-        'instructions': 'Please refresh the page and clear browser cache manually',
-        'version': PWA_VERSION,
-        'timestamp': datetime.utcnow().isoformat()
     })
 
 @app.route('/api/pwa/update', methods=['POST'])
@@ -1159,16 +985,10 @@ def test_notification():
         print(f"❌ Error sending test notification: {e}")
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
-@app.route('/pwa-test')
-def pwa_test():
-    """PWA test page for debugging startup issues"""
-    return render_template('pwa_test.html')
-
 @app.route('/notification-debug')
+@login_required
 def notification_debug():
     """Notification debug page for troubleshooting"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template('notification_debug.html')
 
 @app.route('/api/notifications/status')
@@ -2834,14 +2654,6 @@ def debug_comments():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
-@app.route('/pwa-debug')
-def pwa_debug():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    user = User.query.get(session['user_id'])
-    return render_template('pwa_debug.html', user=user)
 
 # Geocoding proxy (avoids CORS and requires UA)
 @app.route('/api/geo/search')
