@@ -2661,6 +2661,14 @@ def debug_comments():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/pwa-debug')
+def pwa_debug():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    return render_template('pwa_debug.html', user=user)
+
 # Geocoding proxy (avoids CORS and requires UA)
 @app.route('/api/geo/search')
 def geo_search():

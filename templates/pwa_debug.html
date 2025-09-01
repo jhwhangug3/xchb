@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}PWA Debug - meowCHAT{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="dashboard-inner">
+        <div class="card">
+            <div class="card-header">
+                <h3>PWA Debug Information</h3>
+            </div>
+            <div class="card-body">
+                <div id="debugInfo">
+                    <div class="mb-3">
+                        <strong>App Status:</strong>
+                        <span id="appStatus">Loading...</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Service Worker:</strong>
+                        <span id="swStatus">Checking...</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Display Mode:</strong>
+                        <span id="displayMode">Checking...</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Network Status:</strong>
+                        <span id="networkStatus">Checking...</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Body Visibility:</strong>
+                        <span id="bodyVisibility">Checking...</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Main Content Visibility:</strong>
+                        <span id="contentVisibility">Checking...</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Navigation Visibility:</strong>
+                        <span id="navVisibility">Checking...</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-primary" onclick="refreshDebug()">Refresh Debug Info</button>
+                    <button class="btn btn-secondary" onclick="clearCache()">Clear Cache</button>
+                    <button class="btn btn-warning" onclick="reloadApp()">Reload App</button>
+                </div>
+                
+                <div class="mt-4">
+                    <h5>Console Logs:</h5>
+                    <div id="consoleLogs" style="background: #1a1a1a; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                        <div>Waiting for logs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Debug functionality
+    function updateDebugInfo() {
+        // App Status
+        document.getElementById('appStatus').textContent = 'Loaded Successfully';
+        
+        // Service Worker Status
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration().then(registration => {
+                if (registration) {
+                    document.getElementById('swStatus').textContent = 'Registered';
+                } else {
+                    document.getElementById('swStatus').textContent = 'Not Registered';
+                }
+            }).catch(() => {
+                document.getElementById('swStatus').textContent = 'Error';
+            });
+        } else {
+            document.getElementById('swStatus').textContent = 'Not Supported';
+        }
+        
+        // Display Mode
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            document.getElementById('displayMode').textContent = 'Standalone (Installed)';
+        } else if (window.navigator.standalone === true) {
+            document.getElementById('displayMode').textContent = 'Standalone (iOS)';
+        } else {
+            document.getElementById('displayMode').textContent = 'Browser';
+        }
+        
+        // Network Status
+        document.getElementById('networkStatus').textContent = navigator.onLine ? 'Online' : 'Offline';
+        
+        // Body Visibility
+        const body = document.body;
+        const bodyStyle = window.getComputedStyle(body);
+        document.getElementById('bodyVisibility').textContent = 
+            `Display: ${bodyStyle.display}, Visibility: ${bodyStyle.visibility}, Opacity: ${bodyStyle.opacity}`;
+        
+        // Main Content Visibility
+        const mainContent = document.querySelector('.main-content-wrapper');
+        if (mainContent) {
+            const contentStyle = window.getComputedStyle(mainContent);
+            document.getElementById('contentVisibility').textContent = 
+                `Display: ${contentStyle.display}, Visibility: ${contentStyle.visibility}, Opacity: ${contentStyle.opacity}`;
+        } else {
+            document.getElementById('contentVisibility').textContent = 'Element not found';
+        }
+        
+        // Navigation Visibility
+        const topNav = document.getElementById('topNav');
+        const bottomNav = document.getElementById('bottomNav');
+        if (topNav && bottomNav) {
+            const topNavStyle = window.getComputedStyle(topNav);
+            const bottomNavStyle = window.getComputedStyle(bottomNav);
+            document.getElementById('navVisibility').textContent = 
+                `Top: ${topNavStyle.display}, Bottom: ${bottomNavStyle.display}`;
+        } else {
+            document.getElementById('navVisibility').textContent = 'Navigation elements not found';
+        }
+    }
+    
+    function refreshDebug() {
+        updateDebugInfo();
+    }
+    
+    function clearCache() {
+        if ('caches' in window) {
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames.map(cacheName => {
+                        console.log('Deleting cache:', cacheName);
+                        return caches.delete(cacheName);
+                    })
+                );
+            }).then(() => {
+                alert('Cache cleared successfully!');
+                refreshDebug();
+            }).catch(error => {
+                console.error('Error clearing cache:', error);
+                alert('Error clearing cache: ' + error.message);
+            });
+        } else {
+            alert('Cache API not supported');
+        }
+    }
+    
+    function reloadApp() {
+        window.location.reload();
+    }
+    
+    // Capture console logs
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    function addToConsoleLogs(type, message) {
+        const logsContainer = document.getElementById('consoleLogs');
+        const logEntry = document.createElement('div');
+        logEntry.style.color = type === 'error' ? '#ff6b6b' : type === 'warn' ? '#ffd93d' : '#ffffff';
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${type.toUpperCase()}: ${message}`;
+        logsContainer.appendChild(logEntry);
+        
+        // Keep only last 50 logs
+        while (logsContainer.children.length > 50) {
+            logsContainer.removeChild(logsContainer.firstChild);
+        }
+    }
+    
+    console.log = function(...args) {
+        originalLog.apply(console, args);
+        addToConsoleLogs('log', args.join(' '));
+    };
+    
+    console.error = function(...args) {
+        originalError.apply(console, args);
+        addToConsoleLogs('error', args.join(' '));
+    };
+    
+    console.warn = function(...args) {
+        originalWarn.apply(console, args);
+        addToConsoleLogs('warn', args.join(' '));
+    };
+    
+    // Initialize debug info
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(updateDebugInfo, 1000);
+    });
+    
+    // Update debug info periodically
+    setInterval(updateDebugInfo, 5000);
+</script>
+{% endblock %}

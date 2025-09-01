@@ -37,9 +37,65 @@
     <!-- PWA Utilities -->
     <script src="{{ url_for('static', filename='js/pwa-utils.js') }}" defer></script>
     
+    <!-- Critical CSS for immediate display -->
+    <style>
+        /* Ensure immediate visibility */
+        body {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background: #000000 !important;
+            color: #ffffff !important;
+            min-height: 100vh !important;
+        }
+        
+        /* Ensure main content is visible */
+        .main-content-wrapper {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-height: calc(100vh - 136px) !important;
+        }
+        
+        /* Ensure navigation is visible */
+        .navbar-meow, .bottom-nav {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Loading fallback */
+        .loading-fallback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .loading-fallback.hidden {
+            display: none !important;
+        }
+    </style>
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <!-- Loading fallback -->
+    <div class="loading-fallback" id="loadingFallback">
+        <div style="text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 16px;">meowCHAT</div>
+            <div style="font-size: 14px; color: #888;">Loading...</div>
+        </div>
+    </div>
+
     <!-- Top Navigation -->
     <nav class="navbar-meow" id="topNav">
         <div class="inner">
@@ -86,15 +142,26 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Immediate display fixes
         (function() {
             const root = document.documentElement;
             root.setAttribute('data-theme', 'dark');
+            
+            // Ensure body is visible immediately
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            
+            // Hide loading fallback after a short delay
+            setTimeout(() => {
+                const loadingFallback = document.getElementById('loadingFallback');
+                if (loadingFallback) {
+                    loadingFallback.classList.add('hidden');
+                }
+            }, 500);
         })();
-    </script>
-    
-    <!-- PWA Service Worker Registration -->
-    <script>
-        // Register Service Worker
+        
+        // PWA Service Worker Registration with better error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/static/sw.js')
@@ -117,11 +184,12 @@
                     })
                     .catch((error) => {
                         console.error('Service Worker registration failed:', error);
+                        // Don't let service worker errors break the app
                     });
             });
         }
         
-        // PWA Startup Error Handling
+        // Enhanced PWA Startup Error Handling
         window.addEventListener('error', (event) => {
             console.error('PWA Error:', event.error);
             // If there's a critical error, show a fallback
@@ -135,16 +203,40 @@
             console.error('Unhandled promise rejection:', event.reason);
         });
         
-        // Check if PWA is loading properly
+        // Enhanced PWA loading check
         document.addEventListener('DOMContentLoaded', () => {
-            // Add a small delay to ensure everything is loaded
+            // Ensure everything is visible
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            
+            // Check main content wrapper
+            const mainContent = document.querySelector('.main-content-wrapper');
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.style.visibility = 'visible';
+                mainContent.style.opacity = '1';
+            }
+            
+            // Check navigation
+            const topNav = document.getElementById('topNav');
+            const bottomNav = document.getElementById('bottomNav');
+            if (topNav) {
+                topNav.style.display = 'block';
+                topNav.style.visibility = 'visible';
+            }
+            if (bottomNav) {
+                bottomNav.style.display = 'block';
+                bottomNav.style.visibility = 'visible';
+            }
+            
+            // Hide loading fallback
             setTimeout(() => {
-                if (document.body.style.display === 'none' || document.body.style.visibility === 'hidden') {
-                    console.log('Body is hidden, fixing PWA display');
-                    document.body.style.display = 'block';
-                    document.body.style.visibility = 'visible';
+                const loadingFallback = document.getElementById('loadingFallback');
+                if (loadingFallback) {
+                    loadingFallback.classList.add('hidden');
                 }
-            }, 100);
+            }, 1000);
         });
         
         // Show update notification

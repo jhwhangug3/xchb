@@ -38,6 +38,8 @@ self.addEventListener('install', (event) => {
       })
       .catch((error) => {
         console.error('Service Worker install failed:', error);
+        // Don't fail the installation if caching fails
+        return self.skipWaiting();
       })
   );
 });
@@ -50,7 +52,11 @@ self.addEventListener('activate', (event) => {
       cleanOldCaches(),
       checkForUpdates(),
       self.clients.claim()
-    ])
+    ]).catch((error) => {
+      console.error('Service Worker activation failed:', error);
+      // Don't fail activation if cleanup fails
+      return self.clients.claim();
+    })
   );
 });
 

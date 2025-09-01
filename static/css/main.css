@@ -98,6 +98,10 @@ body {
     overscroll-behavior: none;
     /* Handle mobile viewport changes */
     height: 100vh;
+    /* Ensure body is always visible */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     height: 100dvh;
     height: 100svh;
     /* Ensure body adapts to mobile keyboard */
@@ -433,6 +437,10 @@ p {
     /* Remove scrollbars completely */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* Internet Explorer 10+ */
+    /* Ensure main content is always visible */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
