@@ -47,7 +47,10 @@
                 <img src="{{ url_for('static', filename='images/nav.png') }}" alt="meowCHAT"/>
             </a>
             <div class="actions position-relative">
-                <!-- Remove profile button from top nav since it's now in bottom nav -->
+                <button class="notification-btn" onclick="window.pwaUtils.notificationManager.showSettings()" title="Notification Settings">
+                    <i class="fas fa-bell"></i>
+                    <div class="notification-badge">0</div>
+                </button>
             </div>
         </div>
     </nav>
@@ -71,6 +74,9 @@
             </a>
             <a href="{{ url_for('notifications') }}" class="nav-item {% if request.endpoint == 'notifications' %}active{% endif %}">
                 <i class="fas fa-bell"></i>
+                {% if get_pending_request_count() > 0 %}
+                    <div class="notification-badge">{{ get_pending_request_count() }}</div>
+                {% endif %}
             </a>
             <a href="{{ get_profile_url(user) }}" class="nav-item {% if request.endpoint in ['profile', 'view_user_profile_by_username', 'view_user_profile_by_username_alt', 'view_user_profile'] %}active{% endif %}">
                 <div class="profile-avatar-small">

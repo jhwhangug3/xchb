@@ -1,173 +1,234 @@
-{% extends "base.html" %}
-
-{% block title %}Create Post - ChatApp{% endblock %}
-
-{% block content %}
-<div class="create-post-container">
-    <div class="create-post-header">
-        <div class="header-content">
-            <a href="{{ url_for('dashboard') }}" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            <h4 class="header-title">New Post</h4>
-            <button class="post-btn" id="postBtn" disabled>
-                Post
-            </button>
-        </div>
-    </div>
-
-    <div class="create-post-content">
-        <div class="post-form">
-            <div class="user-info">
-                <div class="user-avatar">
-                    {% if current_user.profile_picture %}
-                        <img src="{{ current_user.profile_picture }}" alt="Profile">
-                    {% else %}
-                        <i class="fas fa-user"></i>
-                    {% endif %}
-                </div>
-                <div class="user-details">
-                    <span class="user-name">{{ current_user.first_name or current_user.username }}</span>
-                    <span class="post-visibility">
-                        <i class="fas fa-globe"></i>
-                        Everyone
-                    </span>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Post - ChatApp</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="A modern social media and messaging platform">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="meowCHAT">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#6366f1">
+    <meta name="msapplication-config" content="/static/browserconfig.xml">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/fav.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='images/fav.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/fav.png') }}">
+    <link rel="apple-touch-icon" sizes="167x167" href="{{ url_for('static', filename='images/fav.png') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/fav.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/fav.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/fav.png') }}">
+    
+    <!-- Stylesheets -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    
+    <!-- PWA Utilities -->
+    <script src="{{ url_for('static', filename='js/pwa-utils.js') }}" defer></script>
+</head>
+<body>
+    <!-- Main Content -->
+    <div class="main-content-wrapper" style="padding-top: 0; padding-bottom: 0;">
+        <div class="create-post-container">
+            <div class="create-post-header">
+                <div class="header-content">
+                    <a href="{{ url_for('dashboard') }}" class="back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <h4 class="header-title">New Post</h4>
+                    <button class="post-btn" id="postBtn" disabled>
+                        Post
+                    </button>
                 </div>
             </div>
 
-            <div class="post-input-container">
-                <textarea 
-                    class="post-input" 
-                    id="postContent" 
-                    placeholder="What's happening?"
-                    maxlength="280"
-                    rows="1"
-                ></textarea>
-                
-                <div class="post-actions">
-                    <div class="post-attachments">
-                        <button class="attachment-btn" title="Add photo">
-                            <i class="fas fa-image"></i>
-                        </button>
-                        <button class="attachment-btn" title="Add GIF">
-                            <i class="fas fa-gift"></i>
-                        </button>
-                        <button class="attachment-btn" title="Add poll">
-                            <i class="fas fa-poll"></i>
-                        </button>
-                        <button class="attachment-btn" title="Add location">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </button>
+            <div class="create-post-content">
+                <div class="post-form">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            {% if current_user.profile_picture %}
+                                <img src="{{ current_user.profile_picture }}" alt="Profile">
+                            {% else %}
+                                <i class="fas fa-user"></i>
+                            {% endif %}
+                        </div>
+                        <div class="user-details">
+                            <span class="user-name">{{ current_user.first_name or current_user.username }}</span>
+                            <span class="post-visibility">
+                                <i class="fas fa-globe"></i>
+                                Everyone
+                            </span>
+                        </div>
                     </div>
-                    
-                    <div class="post-stats">
-                        <div class="char-count" id="charCount">
-                            <span id="currentCount">0</span>/280
+
+                    <div class="post-input-container">
+                        <textarea 
+                            class="post-input" 
+                            id="postContent" 
+                            placeholder="What's happening?"
+                            maxlength="280"
+                            rows="1"
+                        ></textarea>
+                        
+                        <div class="post-actions">
+                            <div class="post-attachments">
+                                <button class="attachment-btn" title="Add photo">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="attachment-btn" title="Add GIF">
+                                    <i class="fas fa-gift"></i>
+                                </button>
+                                <button class="attachment-btn" title="Add poll">
+                                    <i class="fas fa-poll"></i>
+                                </button>
+                                <button class="attachment-btn" title="Add location">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="post-stats">
+                                <div class="char-count" id="charCount">
+                                    <span id="currentCount">0</span>/280
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const postInput = document.getElementById('postContent');
-    const postBtn = document.getElementById('postBtn');
-    const currentCount = document.getElementById('currentCount');
-    const charCount = document.getElementById('charCount');
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            const root = document.documentElement;
+            root.setAttribute('data-theme', 'dark');
+        })();
+    </script>
     
-    // Auto-resize textarea
-    function autoResize() {
-        postInput.style.height = 'auto';
-        postInput.style.height = postInput.scrollHeight + 'px';
-    }
-    
-    // Update character count and button state
-    function updatePostState() {
-        const text = postInput.value.trim();
-        const count = text.length;
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const postInput = document.getElementById('postContent');
+        const postBtn = document.getElementById('postBtn');
+        const currentCount = document.getElementById('currentCount');
+        const charCount = document.getElementById('charCount');
         
-        currentCount.textContent = count;
-        
-        // Update character count color
-        if (count > 260) {
-            charCount.style.color = '#ff6b6b';
-        } else if (count > 240) {
-            charCount.style.color = '#ffa500';
-        } else {
-            charCount.style.color = 'var(--gray-500)';
+        // Auto-resize textarea
+        function autoResize() {
+            postInput.style.height = 'auto';
+            postInput.style.height = postInput.scrollHeight + 'px';
         }
         
-        // Enable/disable post button
-        if (text.length > 0 && text.length <= 280) {
-            postBtn.disabled = false;
-            postBtn.classList.add('active');
-        } else {
-            postBtn.disabled = true;
-            postBtn.classList.remove('active');
-        }
-    }
-    
-    // Event listeners
-    postInput.addEventListener('input', function() {
-        autoResize();
-        updatePostState();
-    });
-    
-    postInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (!postBtn.disabled) {
-                submitPost();
+        // Update character count and button state
+        function updatePostState() {
+            const text = postInput.value.trim();
+            const count = text.length;
+            
+            currentCount.textContent = count;
+            
+            // Update character count color
+            if (count > 260) {
+                charCount.style.color = '#ff6b6b';
+            } else if (count > 240) {
+                charCount.style.color = '#ffa500';
+            } else {
+                charCount.style.color = 'var(--gray-500)';
+            }
+            
+            // Enable/disable post button
+            if (text.length > 0 && text.length <= 280) {
+                postBtn.disabled = false;
+                postBtn.classList.add('active');
+            } else {
+                postBtn.disabled = true;
+                postBtn.classList.remove('active');
             }
         }
-    });
-    
-    postBtn.addEventListener('click', submitPost);
-    
-    // Focus on textarea when page loads
-    postInput.focus();
-    
-    function submitPost() {
-        const content = postInput.value.trim();
-        if (content.length === 0 || content.length > 280) return;
         
-        // Disable button during submission
-        postBtn.disabled = true;
-        postBtn.textContent = 'Posting...';
+        // Event listeners
+        postInput.addEventListener('input', function() {
+            autoResize();
+            updatePostState();
+        });
         
-        fetch('/api/posts/create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                content: content
+        postInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!postBtn.disabled) {
+                    submitPost();
+                }
+            }
+        });
+        
+        postBtn.addEventListener('click', submitPost);
+        
+        // Focus on textarea when page loads
+        postInput.focus();
+        
+        function submitPost() {
+            const content = postInput.value.trim();
+            if (content.length === 0 || content.length > 280) return;
+            
+            // Disable button during submission
+            postBtn.disabled = true;
+            postBtn.textContent = 'Posting...';
+            
+            fetch('/api/posts/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: content
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message and redirect
-                alert('Post created successfully!');
-                window.location.href = '{{ url_for("dashboard") }}';
-            } else {
-                alert(data.error || 'Failed to create post');
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message and redirect
+                    alert('Post created successfully!');
+                    window.location.href = '{{ url_for("dashboard") }}';
+                } else {
+                    alert(data.error || 'Failed to create post');
+                    postBtn.disabled = false;
+                    postBtn.textContent = 'Post';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to create post');
                 postBtn.disabled = false;
                 postBtn.textContent = 'Post';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to create post');
-            postBtn.disabled = false;
-            postBtn.textContent = 'Post';
-        });
-    }
-});
-</script>
-{% endblock %}
+            });
+        }
+    });
+    </script>
+</body>
+</html>

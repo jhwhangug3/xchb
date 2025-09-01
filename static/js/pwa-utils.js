@@ -2,8 +2,9 @@
 class PWAUtils {
     constructor() {
         this.isOnline = navigator.onLine;
-        this.currentVersion = 'v1.0.1';
+        this.currentVersion = 'v1.0.2';
         this.updateCheckInterval = null;
+        this.notificationManager = null;
         this.init();
     }
 
@@ -14,7 +15,12 @@ class PWAUtils {
         this.setupBackgroundSync();
         this.setupAutoUpdates();
         this.setupServiceWorkerMessages();
-        this.setupInstallPrompt(); // Add install prompt setup
+        this.setupInstallPrompt();
+        this.setupNotificationManager();
+    }
+
+    setupNotificationManager() {
+        this.notificationManager = new NotificationManager();
     }
 
     setupAutoUpdates() {
@@ -437,6 +443,508 @@ class PWAUtils {
         //     headers: { 'Content-Type': 'application/json' },
         //     body: JSON.stringify(data)
         // });
+    }
+}
+
+// Enhanced Notification Management System
+class NotificationManager {
+    constructor() {
+        this.isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+        this.permission = 'default';
+        this.subscription = null;
+        this.vapidPublicKey = null;
+        this.notificationSettings = {
+            messages: true,
+            likes: true,
+            comments: true,
+            friendRequests: true,
+            general: true
+        };
+        this.init();
+    }
+
+    async init() {
+        if (!this.isSupported) {
+            console.log('Push notifications not supported');
+            return;
+        }
+
+        // Load saved settings
+        this.loadSettings();
+        
+        // Check current permission
+        this.permission = Notification.permission;
+        
+        // Get VAPID public key
+        await this.getVapidPublicKey();
+        
+        // Check for existing subscription
+        await this.checkExistingSubscription();
+        
+        // Setup notification UI
+        this.setupNotificationUI();
+        
+        // Register for push events
+        this.registerPushEvents();
+    }
+
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('notificationSettings');
+            if (saved) {
+                this.notificationSettings = { ...this.notificationSettings, ...JSON.parse(saved) };
+            }
+        } catch (error) {
+            console.error('Error loading notification settings:', error);
+        }
+    }
+
+    saveSettings() {
+        try {
+            localStorage.setItem('notificationSettings', JSON.stringify(this.notificationSettings));
+        } catch (error) {
+            console.error('Error saving notification settings:', error);
+        }
+    }
+
+    async getVapidPublicKey() {
+        try {
+            const response = await fetch('/api/notifications/vapid-public-key');
+            if (response.ok) {
+                const data = await response.json();
+                this.vapidPublicKey = data.key;
+            }
+        } catch (error) {
+            console.error('Error getting VAPID public key:', error);
+        }
+    }
+
+    async checkExistingSubscription() {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            this.subscription = await registration.pushManager.getSubscription();
+            
+            if (this.subscription) {
+                console.log('Existing push subscription found');
+                // Verify subscription is still valid on server
+                await this.verifySubscription();
+            }
+        } catch (error) {
+            console.error('Error checking existing subscription:', error);
+        }
+    }
+
+    async verifySubscription() {
+        try {
+            const response = await fetch('/api/notifications/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    subscription: this.subscription
+                })
+            });
+            
+            if (!response.ok) {
+                console.log('Subscription verification failed, removing subscription');
+                await this.unsubscribe();
+            }
+        } catch (error) {
+            console.error('Error verifying subscription:', error);
+        }
+    }
+
+    setupNotificationUI() {
+        // Create notification settings UI
+        this.createNotificationSettingsUI();
+        
+        // Show notification prompt if needed
+        this.showNotificationPrompt();
+    }
+
+    createNotificationSettingsUI() {
+        // Remove existing notification UI
+        const existing = document.getElementById('notification-settings');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Create notification settings container
+        const container = document.createElement('div');
+        container.id = 'notification-settings';
+        container.className = 'notification-settings';
+        container.innerHTML = `
+            <div class="notification-settings-content">
+                <div class="notification-header">
+                    <h3><i class="fas fa-bell"></i> Notification Settings</h3>
+                    <button class="close-btn" onclick="window.pwaUtils.notificationManager.hideSettings()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="notification-status">
+                    <div class="status-indicator ${this.permission === 'granted' ? 'enabled' : 'disabled'}">
+                        <i class="fas fa-${this.permission === 'granted' ? 'check-circle' : 'times-circle'}"></i>
+                        <span>${this.permission === 'granted' ? 'Notifications Enabled' : 'Notifications Disabled'}</span>
+                    </div>
+                </div>
+                <div class="notification-options">
+                    <label class="notification-option">
+                        <input type="checkbox" id="notify-messages" ${this.notificationSettings.messages ? 'checked' : ''}>
+                        <span>New Messages</span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox" id="notify-likes" ${this.notificationSettings.likes ? 'checked' : ''}>
+                        <span>Post Likes</span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox" id="notify-comments" ${this.notificationSettings.comments ? 'checked' : ''}>
+                        <span>Post Comments</span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox" id="notify-friend-requests" ${this.notificationSettings.friendRequests ? 'checked' : ''}>
+                        <span>Friend Requests</span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox" id="notify-general" ${this.notificationSettings.general ? 'checked' : ''}>
+                        <span>General Updates</span>
+                    </label>
+                </div>
+                <div class="notification-actions">
+                    ${this.permission === 'granted' ? 
+                        `<button class="btn btn-secondary" onclick="window.pwaUtils.notificationManager.unsubscribe()">
+                            <i class="fas fa-bell-slash"></i> Disable Notifications
+                        </button>` :
+                        `<button class="btn btn-primary" onclick="window.pwaUtils.notificationManager.requestPermission()">
+                            <i class="fas fa-bell"></i> Enable Notifications
+                        </button>`
+                    }
+                </div>
+            </div>
+        `;
+
+        // Add event listeners for checkboxes
+        container.addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                this.updateNotificationSetting(e.target.id.replace('notify-', ''), e.target.checked);
+            }
+        });
+
+        document.body.appendChild(container);
+    }
+
+    showNotificationPrompt() {
+        // Don't show if already granted or recently dismissed
+        if (this.permission === 'granted' || 
+            localStorage.getItem('notificationPromptDismissed') ||
+            localStorage.getItem('notificationPromptShown')) {
+            return;
+        }
+
+        // Mark as shown
+        localStorage.setItem('notificationPromptShown', 'true');
+
+        // Create notification prompt
+        const prompt = document.createElement('div');
+        prompt.className = 'notification-prompt';
+        prompt.innerHTML = `
+            <div class="notification-prompt-content">
+                <div class="notification-prompt-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="notification-prompt-text">
+                    <h3>Stay Updated!</h3>
+                    <p>Get notified when someone likes your posts, sends you a message, or requests to be your friend.</p>
+                </div>
+                <div class="notification-prompt-actions">
+                    <button class="btn btn-primary" onclick="window.pwaUtils.notificationManager.requestPermission()">
+                        <i class="fas fa-bell"></i> Enable Notifications
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.pwaUtils.notificationManager.dismissPrompt()">
+                        Not Now
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(prompt);
+
+        // Auto-hide after 15 seconds
+        setTimeout(() => {
+            this.dismissPrompt();
+        }, 15000);
+    }
+
+    dismissPrompt() {
+        const prompt = document.querySelector('.notification-prompt');
+        if (prompt) {
+            prompt.remove();
+        }
+        localStorage.setItem('notificationPromptDismissed', 'true');
+    }
+
+    showSettings() {
+        const settings = document.getElementById('notification-settings');
+        if (settings) {
+            settings.classList.add('show');
+        }
+    }
+
+    hideSettings() {
+        const settings = document.getElementById('notification-settings');
+        if (settings) {
+            settings.classList.remove('show');
+        }
+    }
+
+    async requestPermission() {
+        if (!this.isSupported) {
+            this.showError('Push notifications are not supported in this browser');
+            return;
+        }
+
+        try {
+            // Request notification permission
+            const permission = await Notification.requestPermission();
+            this.permission = permission;
+
+            if (permission === 'granted') {
+                // Subscribe to push notifications
+                await this.subscribe();
+                
+                // Hide prompt and show success
+                this.dismissPrompt();
+                this.showSuccess('Notifications enabled successfully!');
+                
+                // Update UI
+                this.createNotificationSettingsUI();
+                
+                // Trigger permission change callback
+                if (this.onPermissionChange) {
+                    this.onPermissionChange(permission);
+                }
+            } else {
+                this.showError('Notification permission denied');
+                
+                // Trigger permission change callback
+                if (this.onPermissionChange) {
+                    this.onPermissionChange(permission);
+                }
+            }
+        } catch (error) {
+            console.error('Error requesting notification permission:', error);
+            this.showError('Failed to enable notifications');
+        }
+    }
+
+    async subscribe() {
+        if (!this.vapidPublicKey) {
+            console.error('VAPID public key not available');
+            return;
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            
+            // Convert VAPID key
+            const vapidKey = this.urlBase64ToUint8Array(this.vapidPublicKey);
+            
+            // Subscribe to push notifications
+            this.subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: vapidKey
+            });
+
+            // Send subscription to server
+            await this.sendSubscriptionToServer();
+
+            console.log('Push subscription successful');
+        } catch (error) {
+            console.error('Error subscribing to push notifications:', error);
+            throw error;
+        }
+    }
+
+    async unsubscribe() {
+        try {
+            if (this.subscription) {
+                await this.subscription.unsubscribe();
+                this.subscription = null;
+            }
+
+            // Remove from server
+            await this.removeSubscriptionFromServer();
+
+            // Update permission state
+            this.permission = 'denied';
+            
+            // Update UI
+            this.createNotificationSettingsUI();
+            
+            this.showSuccess('Notifications disabled successfully');
+        } catch (error) {
+            console.error('Error unsubscribing from push notifications:', error);
+            this.showError('Failed to disable notifications');
+        }
+    }
+
+    async sendSubscriptionToServer() {
+        try {
+            const response = await fetch('/api/notifications/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    subscription: this.subscription
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send subscription to server');
+            }
+
+            console.log('Subscription sent to server successfully');
+        } catch (error) {
+            console.error('Error sending subscription to server:', error);
+            throw error;
+        }
+    }
+
+    async removeSubscriptionFromServer() {
+        try {
+            const response = await fetch('/api/notifications/unsubscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    subscription: this.subscription
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Failed to remove subscription from server');
+            }
+        } catch (error) {
+            console.error('Error removing subscription from server:', error);
+        }
+    }
+
+    updateNotificationSetting(type, enabled) {
+        this.notificationSettings[type] = enabled;
+        this.saveSettings();
+        
+        // Send updated settings to server
+        this.sendSettingsToServer();
+    }
+
+    async sendSettingsToServer() {
+        try {
+            const response = await fetch('/api/notifications/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    settings: this.notificationSettings
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Failed to save notification settings to server');
+            }
+        } catch (error) {
+            console.error('Error saving notification settings:', error);
+        }
+    }
+
+    registerPushEvents() {
+        // Listen for push events from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'PUSH_RECEIVED') {
+                this.handlePushReceived(event.data);
+            }
+        });
+    }
+
+    handlePushReceived(data) {
+        // Handle push notification received
+        console.log('Push notification received:', data);
+        
+        // Update notification count if needed
+        this.updateNotificationCount();
+    }
+
+    updateNotificationCount() {
+        // Update notification badge/count in UI
+        const badge = document.querySelector('.notification-badge');
+        if (badge) {
+            // Increment count or show indicator
+            badge.style.display = 'block';
+        }
+    }
+
+    showSuccess(message) {
+        this.showNotification(message, 'success');
+    }
+
+    showError(message) {
+        this.showNotification(message, 'error');
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification-toast ${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    // Utility function to convert VAPID key
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    // Test notification function
+    async testNotification() {
+        if (this.permission !== 'granted') {
+            this.showError('Notifications not enabled');
+            return;
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification('Test Notification', {
+                body: 'This is a test notification from meowCHAT',
+                icon: '/static/images/fav.png',
+                badge: '/static/images/fav.png',
+                tag: 'test',
+                requireInteraction: true
+            });
+        } catch (error) {
+            console.error('Error showing test notification:', error);
+            this.showError('Failed to show test notification');
+        }
     }
 }
 

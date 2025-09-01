@@ -7,13 +7,13 @@
     <div class="dashboard-inner">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0">Notifications</h4>
-            <span class="badge bg-light text-dark">{{ pending_requests|length }}</span>
+            <span class="badge bg-light text-dark" id="requestCount">{{ pending_requests|length }}</span>
         </div>
         
         {% if pending_requests %}
-            <div class="notifications-list">
+            <div class="notifications-list" id="notificationsList">
                 {% for request in pending_requests %}
-                <div class="notification-item">
+                <div class="notification-item" data-request-id="{{ request.id }}" data-sender-id="{{ request.sender.id }}">
                     <div class="notification-avatar">
                         {% if request.sender.profile_picture %}
                             <img src="{{ request.sender.profile_picture }}" alt="" class="rounded-circle">
@@ -30,14 +30,21 @@
                         <div class="notification-time">
                             <small class="text-muted">{{ request.created_at.strftime('%b %d, %Y') if request.created_at else 'Recently' }}</small>
                         </div>
+                        <div class="notification-links">
+                            <a href="/@{{ request.sender.username }}" class="text-primary small">
+                                <i class="fas fa-user me-1"></i>View Profile
+                            </a>
+                        </div>
                     </div>
                     <div class="notification-actions">
-                        <a href="{{ url_for('handle_friend_request', request_id=request.id, action='accept') }}" class="btn btn-success btn-sm" title="Accept">
+                        <button class="btn btn-success btn-sm accept-btn" onclick="handleFriendRequest({{ request.id }}, 'accept', this)" title="Accept">
                             <i class="fas fa-check"></i>
-                        </a>
-                        <a href="{{ url_for('handle_friend_request', request_id=request.id, action='reject') }}" class="btn btn-danger btn-sm" title="Reject">
+                            <span class="btn-text">Accept</span>
+                        </button>
+                        <button class="btn btn-danger btn-sm reject-btn" onclick="handleFriendRequest({{ request.id }}, 'reject', this)" title="Reject">
                             <i class="fas fa-times"></i>
-                        </a>
+                            <span class="btn-text">Reject</span>
+                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -53,10 +60,159 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Success Toast -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Friend Request Handling
+    async function handleFriendRequest(requestId, action, buttonElement) {
+        const notificationItem = buttonElement.closest('.notification-item');
+        const acceptBtn = notificationItem.querySelector('.accept-btn');
+        const rejectBtn = notificationItem.querySelector('.reject-btn');
+        
+        // Disable both buttons during processing
+        acceptBtn.disabled = true;
+        rejectBtn.disabled = true;
+        acceptBtn.classList.add('processing');
+        rejectBtn.classList.add('processing');
+        
+        // Show loading state
+        const originalText = buttonElement.querySelector('.btn-text').textContent;
+        const originalIcon = buttonElement.querySelector('i').className;
+        
+        buttonElement.querySelector('.btn-text').textContent = action === 'accept' ? 'Accepting...' : 'Rejecting...';
+        buttonElement.querySelector('i').className = 'fas fa-spinner fa-spin';
+        
+        try {
+            const response = await fetch(`/api/friends/request/${requestId}/${action}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Show success animation
+                if (action === 'accept') {
+                    notificationItem.classList.add('accepted');
+                    showToast('Friend request accepted! You can now chat with them.', 'success');
+                    
+                    // Add a small delay to show the success state before removing
+                    setTimeout(() => {
+                        notificationItem.style.transition = 'all 0.3s ease';
+                        notificationItem.style.transform = 'translateX(100%)';
+                        notificationItem.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            notificationItem.remove();
+                            updateRequestCount();
+                        }, 300);
+                    }, 1500);
+                } else {
+                    notificationItem.classList.add('rejected');
+                    showToast('Friend request rejected.', 'info');
+                    
+                    // Remove immediately for rejections
+                    setTimeout(() => {
+                        notificationItem.style.transition = 'all 0.3s ease';
+                        notificationItem.style.transform = 'translateX(100%)';
+                        notificationItem.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            notificationItem.remove();
+                            updateRequestCount();
+                        }, 300);
+                    }, 1000);
+                }
+                
+            } else {
+                throw new Error(data.error || 'Failed to process request');
+            }
+            
+        } catch (error) {
+            console.error('Error handling friend request:', error);
+            
+            // Reset button state
+            buttonElement.querySelector('.btn-text').textContent = originalText;
+            buttonElement.querySelector('i').className = originalIcon;
+            
+            // Re-enable buttons
+            acceptBtn.disabled = false;
+            rejectBtn.disabled = false;
+            acceptBtn.classList.remove('processing');
+            rejectBtn.classList.remove('processing');
+            
+            showToast('Failed to process request. Please try again.', 'error');
+        }
+    }
+    
+    // Update request count
+    function updateRequestCount() {
+        const requestCount = document.getElementById('requestCount');
+        const currentCount = parseInt(requestCount.textContent) || 0;
+        const newCount = Math.max(0, currentCount - 1);
+        requestCount.textContent = newCount;
+        
+        // Hide count badge if no requests
+        if (newCount === 0) {
+            requestCount.style.display = 'none';
+        }
+        
+        // Update bottom navigation badge
+        const bottomNavBadge = document.querySelector('.bottom-nav .nav-item .notification-badge');
+        if (bottomNavBadge) {
+            if (newCount === 0) {
+                bottomNavBadge.style.display = 'none';
+            } else {
+                bottomNavBadge.textContent = newCount;
+                bottomNavBadge.style.display = 'flex';
+            }
+        }
+    }
+    
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('successToast');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        // Update toast content
+        toastMessage.textContent = message;
+        
+        // Update toast header based on type
+        const toastHeader = toast.querySelector('.toast-header');
+        const icon = toast.querySelector('i');
+        
+        if (type === 'success') {
+            toastHeader.className = 'toast-header bg-success text-white';
+            icon.className = 'fas fa-check-circle me-2';
+        } else if (type === 'error') {
+            toastHeader.className = 'toast-header bg-danger text-white';
+            icon.className = 'fas fa-exclamation-circle me-2';
+        } else {
+            toastHeader.className = 'toast-header bg-info text-white';
+            icon.className = 'fas fa-info-circle me-2';
+        }
+        
+        // Show toast
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+    
     // Auto-refresh notifications every 30 seconds
     document.addEventListener('DOMContentLoaded', function() {
         setInterval(function() {
@@ -64,4 +220,133 @@
         }, 30000);
     });
 </script>
+
+<style>
+    .notification-item {
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        padding: 16px;
+        background: white;
+        border: 1px solid #e1e5e9;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .notification-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+    }
+    
+    .notification-item.accepted {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border-color: #28a745;
+    }
+    
+    .notification-item.rejected {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border-color: #dc3545;
+    }
+    
+    .notification-avatar {
+        width: 48px;
+        height: 48px;
+        margin-right: 12px;
+    }
+    
+    .notification-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+    }
+    
+    .notification-content {
+        flex: 1;
+        margin-right: 12px;
+    }
+    
+    .notification-text {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+    
+    .notification-links {
+        margin-top: 6px;
+    }
+    
+    .notification-links a {
+        text-decoration: none;
+        font-size: 0.8rem;
+        transition: color 0.2s ease;
+    }
+    
+    .notification-links a:hover {
+        color: #0056b3 !important;
+    }
+    
+    .notification-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .accept-btn, .reject-btn {
+        min-width: 80px;
+        transition: all 0.2s ease;
+    }
+    
+    .accept-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    }
+    
+    .reject-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+    }
+    
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+    
+    .btn.processing {
+        pointer-events: none;
+    }
+    
+    .toast-container {
+        z-index: 1050;
+    }
+    
+    .empty-notifications {
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        font-size: 48px;
+        color: #dee2e6;
+    }
+    
+    @media (max-width: 768px) {
+        .notification-actions {
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .accept-btn, .reject-btn {
+            min-width: 70px;
+            font-size: 0.875rem;
+        }
+    }
+</style>
 {% endblock %}

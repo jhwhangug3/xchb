@@ -55,7 +55,7 @@ def offline():
     return render_template('offline.html')
 
 # PWA Version Management
-PWA_VERSION = 'v1.0.1'  # Update this when you make changes
+PWA_VERSION = 'v1.0.2'  # Update this when you make changes
 
 @app.route('/api/pwa/version')
 def pwa_version():
@@ -404,11 +404,21 @@ def get_profile_url(user):
         return url_for('view_user_profile', user_id=user.id)
     return '#'
 
+def get_pending_request_count():
+    """Helper function to get pending friend request count for current user"""
+    if 'user_id' not in session:
+        return 0
+    return FriendRequest.query.filter_by(
+        receiver_id=session['user_id'], 
+        status='pending'
+    ).count()
+
 @app.context_processor
 def inject_helpers():
     """Inject helper functions into templates"""
     return {
-        'get_profile_url': get_profile_url
+        'get_profile_url': get_profile_url,
+        'get_pending_request_count': get_pending_request_count
     }
 
 @app.route('/')
@@ -1032,6 +1042,22 @@ def send_friend_request():
     db.session.add(friend_request)
     db.session.commit()
     
+    # Send notification to receiver
+    sender = User.query.get(session['user_id'])
+    receiver = User.query.get(receiver_id)
+    if sender and receiver:
+        send_push_notification(
+            user_id=receiver_id,
+            notification_type='friend_request',
+            title=f'Friend request from {sender.first_name or sender.username}',
+            body=message if message else f'{sender.first_name or sender.username} wants to be your friend',
+            data={
+                'sender_id': session['user_id'],
+                'request_id': friend_request.id,
+                'url': url_for('view_user_profile', user_id=session['user_id'], _external=True)
+            }
+        )
+    
     return jsonify({'message': 'Friend request sent successfully'})
 
 @app.route('/api/friends/request/<int:request_id>/<action>')
@@ -1069,6 +1095,58 @@ def handle_friend_request(request_id, action):
     
     db.session.commit()
     return redirect(url_for('dashboard'))
+
+@app.route('/api/friends/request/<int:request_id>/<action>', methods=['POST'])
+def handle_friend_request_api(request_id, action):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    friend_request = FriendRequest.query.get(request_id)
+    if not friend_request or friend_request.receiver_id != session['user_id']:
+        return jsonify({'error': 'Request not found'}), 404
+    
+    try:
+        if action == 'accept':
+            friend_request.status = 'accepted'
+            
+            # Create friendship with unique chat session
+            friendship1 = Friendship(user_id=friend_request.sender_id, friend_id=friend_request.receiver_id)
+            friendship2 = Friendship(user_id=friend_request.receiver_id, friend_id=friend_request.sender_id)
+            
+            # Create chat session
+            chat_session = ChatSession(
+                id=friendship1.chat_session_id,
+                user1_id=min(friend_request.sender_id, friend_request.receiver_id),
+                user2_id=max(friend_request.sender_id, friend_request.receiver_id)
+            )
+            
+            db.session.add(friendship1)
+            db.session.add(friendship2)
+            db.session.add(chat_session)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Friend request accepted!',
+                'action': 'accepted'
+            })
+            
+        elif action == 'reject':
+            friend_request.status = 'rejected'
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Friend request rejected.',
+                'action': 'rejected'
+            })
+        else:
+            return jsonify({'error': 'Invalid action'}), 400
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to process request'}), 500
 
 # Ultra-Fast Messaging System with E2E Encryption
 @app.route('/chat/<int:user_id>')
@@ -1325,36 +1403,20 @@ def send_direct_message():
     
     db.session.commit()
 
-    # Send Web Push notification to receiver (if configured)
-    if PUSH_AVAILABLE and VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
-        try:
-            subs = PushSubscription.query.filter_by(user_id=receiver_id).all()
-            if subs:
-                payload = json.dumps({
-                    'title': 'New message',
-                    'body': content[:140],
-                    'sender_id': new_message.sender_id,
-                    'chat_session_id': friendship.chat_session_id,
-                    'url': url_for('direct_chat', user_id=session['user_id'], _external=True)
-                })
-                for s in subs:
-                    try:
-                        webpush(
-                            subscription_info={
-                                'endpoint': s.endpoint,
-                                'keys': {'p256dh': s.p256dh, 'auth': s.auth}
-                            },
-                            data=payload,
-                            vapid_private_key=VAPID_PRIVATE_KEY,
-                            vapid_claims=VAPID_CLAIMS
-                        )
-                    except WebPushException as e:
-                        try:
-                            print(f"WebPush failed: {e}")
-                        except Exception:
-                            pass
-        except Exception:
-            pass
+    # Send push notification to receiver
+    sender = User.query.get(session['user_id'])
+    if sender:
+        send_push_notification(
+            user_id=receiver_id,
+            notification_type='message',
+            title=f'New message from {sender.first_name or sender.username}',
+            body=content[:140],
+            data={
+                'sender_id': session['user_id'],
+                'chat_session_id': friendship.chat_session_id,
+                'url': url_for('direct_chat', user_id=session['user_id'], _external=True)
+            }
+        )
 
     return jsonify({
         'id': new_message.id,
@@ -1885,6 +1947,23 @@ def toggle_post_like(post_id):
         
         db.session.commit()
         
+        # Send notification to post owner when liked
+        if liked and post.user_id != session['user_id']:
+            post_owner = User.query.get(post.user_id)
+            liker = User.query.get(session['user_id'])
+            if post_owner and liker:
+                send_push_notification(
+                    user_id=post.user_id,
+                    notification_type='like',
+                    title=f'{liker.first_name or liker.username} liked your post',
+                    body=f'"{post.content[:50]}{"..." if len(post.content) > 50 else ""}"',
+                    data={
+                        'post_id': post.id,
+                        'liker_id': session['user_id'],
+                        'url': url_for('dashboard', _external=True)
+                    }
+                )
+        
         # Get updated like count
         like_count = post.likes.count()
         
@@ -1921,8 +2000,25 @@ def comment_on_post(post_id):
             post_id=post_id,
             content=content
         )
-        db.session.add(comment)
         db.session.commit()
+        
+        # Send notification to post owner
+        if post.user_id != session['user_id']:
+            post_owner = User.query.get(post.user_id)
+            commenter = User.query.get(session['user_id'])
+            if post_owner and commenter:
+                send_push_notification(
+                    user_id=post.user_id,
+                    notification_type='comment',
+                    title=f'{commenter.first_name or commenter.username} commented on your post',
+                    body=f'"{content[:50]}{"..." if len(content) > 50 else ""}"',
+                    data={
+                        'post_id': post.id,
+                        'comment_id': comment.id,
+                        'commenter_id': session['user_id'],
+                        'url': url_for('dashboard', _external=True)
+                    }
+                )
         
         # Get updated comment count
         comment_count = post.comments.count()
@@ -2378,6 +2474,262 @@ def linkify_bio(text):
     except Exception:
         return escape(text)
 
+# Enhanced Notification System
+class NotificationSettings(db.Model):
+    __tablename__ = 'notification_settings'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    messages = db.Column(db.Boolean, default=True)
+    likes = db.Column(db.Boolean, default=True)
+    comments = db.Column(db.Boolean, default=True)
+    friend_requests = db.Column(db.Boolean, default=True)
+    general = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class NotificationLog(db.Model):
+    __tablename__ = 'notification_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), index=True, nullable=False)
+    type = db.Column(db.String(50), nullable=False, index=True)  # message, like, comment, friend_request, general
+    title = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    data = db.Column(db.Text)  # JSON string for additional data
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    read_at = db.Column(db.DateTime, nullable=True)
+    delivered = db.Column(db.Boolean, default=False)
+    error = db.Column(db.Text, nullable=True)
+
+# Enhanced notification sending function
+def send_push_notification(user_id, notification_type, title, body, data=None):
+    """Send push notification to user"""
+    if not PUSH_AVAILABLE or not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        return False
+    
+    try:
+        # Check user's notification settings
+        settings = NotificationSettings.query.filter_by(user_id=user_id).first()
+        if not settings:
+            settings = NotificationSettings(user_id=user_id)
+            db.session.add(settings)
+            db.session.flush()
+        
+        # Check if this type of notification is enabled
+        if not getattr(settings, notification_type, True):
+            return False
+        
+        # Get user's push subscriptions
+        subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
+        if not subscriptions:
+            return False
+        
+        # Prepare notification payload
+        payload = {
+            'title': title,
+            'body': body,
+            'type': notification_type,
+            'icon': '/static/images/fav.png',
+            'badge': '/static/images/fav.png',
+            'tag': f'{notification_type}_{user_id}',
+            'requireInteraction': notification_type in ['message', 'friend_request'],
+            'vibrate': [200, 100, 200]
+        }
+        
+        # Add specific data based on notification type
+        if data:
+            payload.update(data)
+        
+        # Add actions based on notification type
+        if notification_type == 'message':
+            payload['actions'] = [
+                {'action': 'reply', 'title': 'Reply', 'icon': '/static/images/fav.png'},
+                {'action': 'view', 'title': 'View Chat', 'icon': '/static/images/fav.png'}
+            ]
+        elif notification_type == 'like':
+            payload['actions'] = [
+                {'action': 'view', 'title': 'View Post', 'icon': '/static/images/fav.png'}
+            ]
+        elif notification_type == 'friend_request':
+            payload['actions'] = [
+                {'action': 'accept', 'title': 'Accept', 'icon': '/static/images/fav.png'},
+                {'action': 'view', 'title': 'View Profile', 'icon': '/static/images/fav.png'}
+            ]
+        
+        success_count = 0
+        error_count = 0
+        
+        # Send to all user's subscriptions
+        for subscription in subscriptions:
+            try:
+                webpush(
+                    subscription_info={
+                        'endpoint': subscription.endpoint,
+                        'keys': {'p256dh': subscription.p256dh, 'auth': subscription.auth}
+                    },
+                    data=json.dumps(payload),
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims=VAPID_CLAIMS
+                )
+                success_count += 1
+                
+                # Log successful notification
+                log = NotificationLog(
+                    user_id=user_id,
+                    type=notification_type,
+                    title=title,
+                    body=body,
+                    data=json.dumps(data) if data else None,
+                    delivered=True
+                )
+                db.session.add(log)
+                
+            except WebPushException as e:
+                error_count += 1
+                print(f"WebPush failed for user {user_id}: {e}")
+                
+                # Log failed notification
+                log = NotificationLog(
+                    user_id=user_id,
+                    type=notification_type,
+                    title=title,
+                    body=body,
+                    data=json.dumps(data) if data else None,
+                    delivered=False,
+                    error=str(e)
+                )
+                db.session.add(log)
+                
+                # Remove invalid subscription
+                if '410' in str(e) or '404' in str(e):
+                    db.session.delete(subscription)
+        
+        db.session.commit()
+        return success_count > 0
+        
+    except Exception as e:
+        print(f"Error sending push notification: {e}")
+        db.session.rollback()
+        return False
+
+# Enhanced notification APIs
+@app.route('/api/notifications/settings', methods=['GET', 'POST'])
+def notification_settings():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if request.method == 'GET':
+        settings = NotificationSettings.query.filter_by(user_id=session['user_id']).first()
+        if not settings:
+            settings = NotificationSettings(user_id=session['user_id'])
+            db.session.add(settings)
+            db.session.commit()
+        
+        return jsonify({
+            'messages': settings.messages,
+            'likes': settings.likes,
+            'comments': settings.comments,
+            'friend_requests': settings.friend_requests,
+            'general': settings.general
+        })
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        settings = NotificationSettings.query.filter_by(user_id=session['user_id']).first()
+        if not settings:
+            settings = NotificationSettings(user_id=session['user_id'])
+            db.session.add(settings)
+        
+        if 'settings' in data:
+            user_settings = data['settings']
+            settings.messages = user_settings.get('messages', True)
+            settings.likes = user_settings.get('likes', True)
+            settings.comments = user_settings.get('comments', True)
+            settings.friend_requests = user_settings.get('friendRequests', True)
+            settings.general = user_settings.get('general', True)
+        
+        db.session.commit()
+        return jsonify({'message': 'Settings updated successfully'})
+
+@app.route('/api/notifications/verify', methods=['POST'])
+def verify_subscription():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    endpoint = (data.get('subscription') or {}).get('endpoint')
+    
+    if not endpoint:
+        return jsonify({'error': 'Missing endpoint'}), 400
+    
+    # Check if subscription exists and belongs to user
+    subscription = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if not subscription or subscription.user_id != session['user_id']:
+        return jsonify({'error': 'Invalid subscription'}), 404
+    
+    return jsonify({'valid': True})
+
+@app.route('/api/notifications/test', methods=['POST'])
+def test_notification():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    success = send_push_notification(
+        user_id=session['user_id'],
+        notification_type='general',
+        title='Test Notification',
+        body='This is a test notification from meowCHAT!',
+        data={'url': url_for('dashboard', _external=True)}
+    )
+    
+    if success:
+        return jsonify({'message': 'Test notification sent successfully'})
+    else:
+        return jsonify({'error': 'Failed to send test notification'}), 500
+
+@app.route('/api/notifications/pending', methods=['GET'])
+def get_pending_notifications():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Get unread notifications from the last 24 hours
+    since = datetime.utcnow() - timedelta(hours=24)
+    notifications = NotificationLog.query.filter(
+        NotificationLog.user_id == session['user_id'],
+        NotificationLog.sent_at >= since,
+        NotificationLog.read_at.is_(None)
+    ).order_by(NotificationLog.sent_at.desc()).limit(50).all()
+    
+    return jsonify([{
+        'id': n.id,
+        'type': n.type,
+        'title': n.title,
+        'body': n.body,
+        'data': json.loads(n.data) if n.data else None,
+        'sent_at': n.sent_at.isoformat(),
+        'delivered': n.delivered
+    } for n in notifications])
+
+@app.route('/api/notifications/mark-read', methods=['POST'])
+def mark_notifications_read():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    notification_ids = data.get('notification_ids', [])
+    
+    if notification_ids:
+        NotificationLog.query.filter(
+            NotificationLog.id.in_(notification_ids),
+            NotificationLog.user_id == session['user_id']
+        ).update({'read_at': datetime.utcnow()}, synchronize_session=False)
+    else:
+        # Mark all unread notifications as read
+        NotificationLog.query.filter(
+            NotificationLog.user_id == session['user_id'],
+            NotificationLog.read_at.is_(None)
+        ).update({'read_at': datetime.utcnow()}, synchronize_session=False)
+    
+    db.session.commit()
+    return jsonify({'message': 'Notifications marked as read'})
 
 if __name__ == '__main__':
     host = os.environ.get('HOST', '127.0.0.1')

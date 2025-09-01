@@ -3417,3 +3417,695 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
         color: var(--black);
     }
 }
+
+/* Notification System Styles */
+.notification-settings {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.notification-settings.show {
+    display: flex;
+}
+
+.notification-settings-content {
+    background: var(--bg-color);
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.notification-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-header .close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.notification-header .close-btn:hover {
+    color: var(--text-color);
+    background: var(--hover-color);
+}
+
+.notification-status {
+    margin-bottom: 25px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.status-indicator.enabled {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-indicator.disabled {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.notification-options {
+    margin-bottom: 25px;
+}
+
+.notification-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    padding-left: 10px;
+}
+
+.notification-option:hover {
+    background: var(--hover-color);
+}
+
+.notification-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.notification-option span {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.notification-actions .btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+/* Notification Prompt Styles */
+.notification-prompt {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-color);
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 350px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    z-index: 1000;
+    animation: slideInUp 0.3s ease;
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.notification-prompt-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.notification-prompt-icon {
+    text-align: center;
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.notification-prompt-text h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+.notification-prompt-text p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.notification-prompt-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.notification-prompt-actions .btn {
+    flex: 1;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* Notification Toast Styles */
+.notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-color);
+    border-radius: 10px;
+    padding: 15px 20px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification-toast.success {
+    border-left: 4px solid #4CAF50;
+}
+
+.notification-toast.error {
+    border-left: 4px solid #F44336;
+}
+
+.notification-toast.info {
+    border-left: 4px solid #2196F3;
+}
+
+.notification-toast i {
+    font-size: 1.2rem;
+}
+
+.notification-toast.success i {
+    color: #4CAF50;
+}
+
+.notification-toast.error i {
+    color: #F44336;
+}
+
+.notification-toast.info i {
+    color: #2196F3;
+}
+
+.notification-toast span {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #F44336;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    display: none;
+}
+
+/* Bottom Navigation Notification Badge */
+.bottom-nav .nav-item .notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #F44336;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 10;
+}
+
+/* Notification Button in Navigation */
+.notification-btn {
+    position: relative;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.notification-btn:hover {
+    background: var(--hover-color);
+    color: var(--primary-color);
+}
+
+.notification-btn.has-notifications {
+    color: var(--primary-color);
+}
+
+.notification-btn.has-notifications .notification-badge {
+    display: flex;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .notification-settings-content {
+        width: 95%;
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .notification-prompt {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .notification-toast {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .notification-prompt-actions {
+        flex-direction: column;
+    }
+}
+
+/* Dark Mode Adjustments */
+@media (prefers-color-scheme: dark) {
+    .notification-settings-content,
+    .notification-prompt,
+    .notification-toast {
+        background: #1a1a1a;
+        border-color: #333;
+    }
+    
+    .status-indicator.enabled {
+        background: rgba(76, 175, 80, 0.2);
+        border-color: rgba(76, 175, 80, 0.4);
+    }
+    
+    .status-indicator.disabled {
+        background: rgba(244, 67, 54, 0.2);
+        border-color: rgba(244, 67, 54, 0.4);
+    }
+}
+
+/* Dashboard Notification Test Section */
+.notification-test-section {
+    margin-bottom: 30px;
+}
+
+.notification-test-section .card {
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    background: var(--bg-color);
+}
+
+.notification-test-section .card-header {
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 15px 15px 0 0;
+    padding: 20px;
+}
+
+.notification-test-section .card-header h5 {
+    margin: 0;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-test-section .card-body {
+    padding: 20px;
+}
+
+.notification-test-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.notification-test-buttons .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.notification-status {
+    padding: 10px;
+    background: var(--hover-color);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Friend Requests Section */
+.friend-requests-section {
+    margin-bottom: 30px;
+}
+
+.friend-requests-section h3 {
+    color: var(--text-color);
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.friend-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.friend-request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.friend-request-item:hover {
+    background: var(--hover-color);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.friend-request-info h4 {
+    margin: 0 0 5px 0;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.friend-request-info p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.friend-request-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.friend-request-actions .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Friends Section */
+.friends-section {
+    margin-bottom: 30px;
+}
+
+.friends-section h3 {
+    color: var(--text-color);
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.friends-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.friend-card {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.friend-card:hover {
+    background: var(--hover-color);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.friend-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    overflow: hidden;
+}
+
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-info h4 {
+    margin: 0 0 5px 0;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.friend-status {
+    margin: 0;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.friend-status.online {
+    color: #4CAF50;
+}
+
+.friend-status.offline {
+    color: var(--text-muted);
+}
+
+.friend-status.online::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #4CAF50;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.friend-actions .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* No Friends Section */
+.no-friends-section {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: var(--text-color);
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    margin-bottom: 30px;
+    font-size: 1rem;
+}
+
+.empty-state .btn {
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+/* Welcome Section */
+.welcome-section {
+    margin-bottom: 30px;
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 15px;
+    color: white;
+}
+
+.welcome-section h1 {
+    margin: 0 0 10px 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.welcome-section p {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .notification-test-buttons {
+        flex-direction: column;
+    }
+    
+    .friend-request-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .friend-request-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .friend-request-actions .btn {
+        flex: 1;
+    }
+    
+    .friends-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .friend-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .friend-actions {
+        width: 100%;
+    }
+    
+    .friend-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .welcome-section h1 {
+        font-size: 1.5rem;
+    }
+    
+    .welcome-section p {
+        font-size: 1rem;
+    }
+}
