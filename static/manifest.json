@@ -1,7 +1,7 @@
 {
   "name": "meowCHAT",
   "short_name": "meowCHAT",
-  "description": "A modern social media and messaging platform with push notifications",
+  "description": "A modern social media and messaging platform",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#1a1a1a",
