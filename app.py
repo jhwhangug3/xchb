@@ -922,6 +922,107 @@ if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
         VAPID_PUBLIC_KEY = None
         VAPID_PRIVATE_KEY = None
 
+@app.route('/api/notifications/test', methods=['POST'])
+def test_notification():
+    """Test endpoint to send a notification to the current user"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    if not PUSH_AVAILABLE:
+        return jsonify({'error': 'Push notifications not available'}), 503
+    
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        return jsonify({'error': 'VAPID not configured'}), 503
+    
+    try:
+        # Get user's push subscriptions
+        subs = PushSubscription.query.filter_by(user_id=session['user_id']).all()
+        
+        if not subs:
+            return jsonify({'error': 'No push subscriptions found for user'}), 404
+        
+        # Send test notification
+        payload = json.dumps({
+            'title': 'Test Notification',
+            'body': 'This is a test notification from meowCHAT!',
+            'url': url_for('dashboard', _external=True)
+        })
+        
+        success_count = 0
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info={
+                        'endpoint': sub.endpoint,
+                        'keys': {'p256dh': sub.p256dh, 'auth': sub.auth}
+                    },
+                    data=payload,
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims=VAPID_CLAIMS
+                )
+                success_count += 1
+                print(f"✅ Test notification sent successfully to user {session['user_id']}")
+            except WebPushException as e:
+                print(f"❌ Test notification failed for user {session['user_id']}: {e}")
+                # Remove invalid subscription
+                try:
+                    db.session.delete(sub)
+                    db.session.commit()
+                    print(f"🗑️ Removed invalid subscription for user {session['user_id']}")
+                except Exception as del_error:
+                    print(f"❌ Failed to remove invalid subscription: {del_error}")
+        
+        if success_count > 0:
+            return jsonify({
+                'success': True,
+                'message': f'Test notification sent to {success_count} device(s)',
+                'subscriptions': len(subs)
+            })
+        else:
+            return jsonify({'error': 'Failed to send test notification to any devices'}), 500
+            
+    except Exception as e:
+        print(f"❌ Error sending test notification: {e}")
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+@app.route('/pwa-test')
+def pwa_test():
+    """PWA test page for debugging startup issues"""
+    return render_template('pwa_test.html')
+
+@app.route('/notification-debug')
+@login_required
+def notification_debug():
+    """Notification debug page for troubleshooting"""
+    return render_template('notification_debug.html')
+
+@app.route('/api/notifications/status')
+def notification_status():
+    """Check notification status for the current user"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get user's push subscriptions
+        subs = PushSubscription.query.filter_by(user_id=session['user_id']).all()
+        
+        return jsonify({
+            'push_available': PUSH_AVAILABLE,
+            'vapid_configured': bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY),
+            'user_subscriptions': len(subs),
+            'subscriptions': [
+                {
+                    'id': sub.id,
+                    'endpoint': sub.endpoint[:50] + '...' if len(sub.endpoint) > 50 else sub.endpoint,
+                    'created': sub.created_at.isoformat() if sub.created_at else None
+                }
+                for sub in subs
+            ]
+        })
+    except Exception as e:
+        print(f"❌ Error checking notification status: {e}")
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
 @app.route('/api/notifications/vapid-public-key')
 def vapid_public_key():
     if not PUSH_AVAILABLE:

@@ -225,93 +225,93 @@ self.addEventListener('push', (event) => {
             body,
             icon: '/static/images/fav.png',
             badge: '/static/images/fav.png',
-      data: { url },
-      requireInteraction: true,
-      actions: [
-        {
-          action: 'open',
-          title: 'Open',
-          icon: '/static/images/fav.png'
-        },
-        {
-          action: 'close',
-          title: 'Close',
-          icon: '/static/images/fav.png'
-        }
-      ]
+            data: { url },
+            requireInteraction: true,
+            actions: [
+                {
+                    action: 'open',
+                    title: 'Open',
+                    icon: '/static/images/fav.png'
+                },
+                {
+                    action: 'close',
+                    title: 'Close',
+                    icon: '/static/images/fav.png'
+                }
+            ]
         };
         event.waitUntil(self.registration.showNotification(title, options));
     } catch (e) {
         // Fallback if not JSON
-    event.waitUntil(self.registration.showNotification('meowCHAT', { 
-      body: 'New message',
-      icon: '/static/images/fav.png'
-    }));
+        event.waitUntil(self.registration.showNotification('meowCHAT', { 
+            body: 'New message',
+            icon: '/static/images/fav.png'
+        }));
     }
 });
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
   
-  if (event.action === 'close') {
-    return;
-  }
+    if (event.action === 'close') {
+        return;
+    }
 
     const url = (event.notification.data && event.notification.data.url) || '/dashboard';
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already a window/tab open with the target URL
-      for (const client of clientList) {
-        if (client.url === url && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      // If so, focus it
+            // Check if there's already a window/tab open with the target URL
             for (const client of clientList) {
-        if ('focus' in client) {
-          return client.focus();
-        }
-      }
-      // Otherwise, open a new window/tab
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(url);
-      }
+                if (client.url === url && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // If so, focus it
+            for (const client of clientList) {
+                if ('focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Otherwise, open a new window/tab
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(url);
+            }
         })
     );
 });
 
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(doBackgroundSync());
-  }
+    if (event.tag === 'background-sync') {
+        event.waitUntil(doBackgroundSync());
+    }
 });
 
 async function doBackgroundSync() {
-  try {
-    // Sync any pending data when connection is restored
-    console.log('Background sync triggered');
-    // Check for updates during background sync
-    await checkForUpdates();
-  } catch (error) {
-    console.error('Background sync failed:', error);
-  }
+    try {
+        // Sync any pending data when connection is restored
+        console.log('Background sync triggered');
+        // Check for updates during background sync
+        await checkForUpdates();
+    } catch (error) {
+        console.error('Background sync failed:', error);
+    }
 }
 
 // Handle message events from main thread
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'CHECK_UPDATE') {
-    event.waitUntil(checkForUpdates());
-  }
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+    
+    if (event.data && event.data.type === 'CHECK_UPDATE') {
+        event.waitUntil(checkForUpdates());
+    }
 });
 
 // Periodic update checks (every 30 minutes)
 setInterval(() => {
-  checkForUpdates();
+    checkForUpdates();
 }, 30 * 60 * 1000);
 
 

@@ -291,6 +291,64 @@ class PWAUtils {
         }, 1500);
     }
 
+    // Enhanced splash screen for PWA startup
+    showPWASplashScreen() {
+        // Check if we're in standalone mode (installed PWA)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           window.navigator.standalone === true;
+        
+        if (!isStandalone) {
+            return;
+        }
+        
+        // Show splash screen for PWA startup
+        const splash = document.createElement('div');
+        splash.className = 'pwa-splash';
+        splash.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.3s ease;
+        `;
+        
+        splash.innerHTML = `
+            <div style="text-align: center; color: white;">
+                <img src="/static/images/fav.png" alt="meowCHAT" style="width: 80px; height: 80px; border-radius: 16px; margin-bottom: 16px;">
+                <h1 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 8px;">meowCHAT</h1>
+                <p style="opacity: 0.7; font-size: 0.9rem;">Loading...</p>
+            </div>
+        `;
+        
+        document.body.appendChild(splash);
+
+        // Hide splash screen when page is loaded
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.remove();
+                }, 300);
+            }, 1000);
+        });
+        
+        // Fallback: hide after 3 seconds
+        setTimeout(() => {
+            if (splash.parentNode) {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.remove();
+                }, 300);
+            }
+        }, 3000);
+    }
+
     // Install prompt functionality
     setupInstallPrompt() {
         // Listen for the beforeinstallprompt event
@@ -631,9 +689,14 @@ class PWAUtils {
 document.addEventListener('DOMContentLoaded', () => {
     window.pwaUtils = new PWAUtils();
     
-    // Show splash screen only for standalone mode (installed PWA) and only once
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        window.pwaUtils.showSplashScreen();
+    // Show enhanced splash screen for standalone mode (installed PWA)
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        window.pwaUtils.showPWASplashScreen();
+    } else {
+        // Show regular splash screen only for standalone mode (installed PWA) and only once
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            window.pwaUtils.showSplashScreen();
+        }
     }
     
     // Setup app shortcuts
