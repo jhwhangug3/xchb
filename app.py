@@ -991,9 +991,10 @@ def pwa_test():
     return render_template('pwa_test.html')
 
 @app.route('/notification-debug')
-@login_required
 def notification_debug():
     """Notification debug page for troubleshooting"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     return render_template('notification_debug.html')
 
 @app.route('/api/notifications/status')
