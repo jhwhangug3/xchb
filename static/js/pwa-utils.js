@@ -451,11 +451,13 @@ class PWAUtils {
                 this.pushSubscription = await registration.pushManager.getSubscription();
                 
                 if (!this.pushSubscription) {
-                    // Request notification permission
-                    const permission = await Notification.requestPermission();
-                    
-                    if (permission === 'granted') {
-                        await this.subscribeToPushNotifications(registration);
+                    // Only request permission if not already granted/denied
+                    if (Notification.permission === 'default') {
+                        const permission = await Notification.requestPermission();
+                        
+                        if (permission === 'granted') {
+                            await this.subscribeToPushNotifications(registration);
+                        }
                     }
                 } else {
                     // We already have a subscription, register it with the server

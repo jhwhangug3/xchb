@@ -891,6 +891,37 @@ VAPID_CLAIMS = {
     'sub': os.environ.get('VAPID_SUBJECT', 'mailto:admin@example.com')
 }
 
+# Generate temporary VAPID keys if not provided (for testing)
+if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+    try:
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import serialization
+        import base64
+        
+        # Generate a temporary key pair for testing
+        private_key = ec.generate_private_key(ec.SECP256R1())
+        public_key = private_key.public_key()
+        
+        # Convert to base64 format for VAPID
+        private_bytes = private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        public_bytes = public_key.public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        
+        VAPID_PRIVATE_KEY = base64.b64encode(private_bytes).decode('utf-8')
+        VAPID_PUBLIC_KEY = base64.b64encode(public_bytes).decode('utf-8')
+        
+        print("⚠️  Generated temporary VAPID keys for testing. For production, set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables.")
+    except ImportError:
+        print("⚠️  VAPID keys not configured and cryptography not available. Push notifications will be disabled.")
+        VAPID_PUBLIC_KEY = None
+        VAPID_PRIVATE_KEY = None
+
 @app.route('/api/notifications/vapid-public-key')
 def vapid_public_key():
     if not PUSH_AVAILABLE:
@@ -1364,7 +1395,7 @@ def send_direct_message():
     
     db.session.commit()
 
-    # Send Web Push notification to receiver (if configured)
+        # Send Web Push notification to receiver (if configured)
     if PUSH_AVAILABLE and VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
         try:
             subs = PushSubscription.query.filter_by(user_id=receiver_id).all()
@@ -1387,13 +1418,22 @@ def send_direct_message():
                             vapid_private_key=VAPID_PRIVATE_KEY,
                             vapid_claims=VAPID_CLAIMS
                         )
+                        print(f"✅ Push notification sent to user {receiver_id} for message from {session['user_id']}")
                     except WebPushException as e:
+                        print(f"❌ WebPush failed for message notification: {e}")
+                        # Remove invalid subscription
                         try:
-                            print(f"WebPush failed: {e}")
-                        except Exception:
-                            pass
-        except Exception:
-            pass
+                            db.session.delete(s)
+                            db.session.commit()
+                            print(f"🗑️ Removed invalid subscription for user {receiver_id}")
+                        except Exception as del_error:
+                            print(f"❌ Failed to remove invalid subscription: {del_error}")
+            else:
+                print(f"ℹ️ No push subscriptions found for user {receiver_id}")
+        except Exception as e:
+            print(f"❌ Error sending message notification: {e}")
+    else:
+        print(f"ℹ️ Push notifications not configured (PUSH_AVAILABLE={PUSH_AVAILABLE}, VAPID_PUBLIC_KEY={bool(VAPID_PUBLIC_KEY)}, VAPID_PRIVATE_KEY={bool(VAPID_PRIVATE_KEY)})")
 
     return jsonify({
         'id': new_message.id,
@@ -2432,6 +2472,38 @@ def test_push_notification():
         })
     except Exception as e:
         return jsonify({'error': f'Test failed: {str(e)}'}), 500
+
+# Debug notification status endpoint
+@app.route('/api/debug/notification-status')
+def debug_notification_status():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get user's push subscriptions
+        subs = PushSubscription.query.filter_by(user_id=session['user_id']).all()
+        
+        # Check VAPID configuration
+        vapid_status = {
+            'push_available': PUSH_AVAILABLE,
+            'vapid_public_key': bool(VAPID_PUBLIC_KEY),
+            'vapid_private_key': bool(VAPID_PRIVATE_KEY),
+            'vapid_claims': VAPID_CLAIMS
+        }
+        
+        return jsonify({
+            'user_id': session['user_id'],
+            'subscriptions_count': len(subs),
+            'subscriptions': [{
+                'id': s.id,
+                'endpoint': s.endpoint[:50] + '...' if len(s.endpoint) > 50 else s.endpoint,
+                'created_at': s.created_at.isoformat() if s.created_at else None
+            } for s in subs],
+            'vapid_status': vapid_status,
+            'push_available': PUSH_AVAILABLE
+        })
+    except Exception as e:
+        return jsonify({'error': f'Status check failed: {str(e)}'}), 500
 
 # Debug endpoint to check database
 @app.route('/api/debug/comments')

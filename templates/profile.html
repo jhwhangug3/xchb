@@ -127,6 +127,9 @@
                         <button id="testNotificationBtn" class="btn btn-outline-info btn-sm me-2" style="display: none;">
                             <i class="fas fa-bell"></i> Test
                         </button>
+                        <button id="checkNotificationStatusBtn" class="btn btn-outline-secondary btn-sm me-2">
+                            <i class="fas fa-info-circle"></i> Status
+                        </button>
                         <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
                     </div>
                 </li>
@@ -684,6 +687,31 @@
             } catch (error) {
                 console.error('Test notification error:', error);
                 showAlert('Test failed: ' + error.message, 'error');
+            }
+        });
+
+        // Check notification status functionality
+        document.getElementById('checkNotificationStatusBtn').addEventListener('click', async function() {
+            try {
+                const res = await fetch('/api/debug/notification-status');
+                const data = await res.json();
+                
+                if (res.ok) {
+                    console.log('Notification status:', data);
+                    let statusText = `Status: ${data.subscriptions_count} subscription(s)`;
+                    if (data.vapid_status.push_available) {
+                        statusText += ', Push available';
+                    }
+                    if (data.vapid_status.vapid_public_key && data.vapid_status.vapid_private_key) {
+                        statusText += ', VAPID configured';
+                    }
+                    showAlert(`Notification Status: ${statusText}`, 'success');
+                } else {
+                    showAlert('Status check failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+                showAlert('Status check failed: ' + error.message, 'error');
             }
         });
 
