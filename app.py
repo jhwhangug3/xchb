@@ -985,11 +985,39 @@ def test_notification():
         print(f"❌ Error sending test notification: {e}")
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
-@app.route('/notification-debug')
-@login_required
-def notification_debug():
-    """Notification debug page for troubleshooting"""
-    return render_template('notification_debug.html')
+@app.route('/pwa-debug')
+def pwa_debug():
+    """PWA Debug page for troubleshooting black screen issues"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('pwa_debug.html')
+
+@app.route('/api/pwa/debug')
+def pwa_debug_api():
+    """API endpoint for PWA debug information"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get basic PWA information
+        pwa_info = {
+            'version': PWA_VERSION,
+            'timestamp': datetime.utcnow().isoformat(),
+            'user_agent': request.headers.get('User-Agent', ''),
+            'accept_language': request.headers.get('Accept-Language', ''),
+            'user_id': session['user_id'],
+            'session_active': bool(session.get('user_id')),
+            'features': {
+                'offline': True,
+                'push_notifications': PUSH_AVAILABLE,
+                'background_sync': True,
+                'install_prompt': True
+            }
+        }
+        
+        return jsonify(pwa_info)
+    except Exception as e:
+        return jsonify({'error': f'Debug failed: {str(e)}'}), 500
 
 @app.route('/api/notifications/status')
 def notification_status():

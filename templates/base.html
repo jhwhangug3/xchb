@@ -92,8 +92,26 @@
         })();
     </script>
     
-    <!-- PWA Service Worker Registration -->
+        <!-- PWA Service Worker Registration -->
     <script>
+        // Critical PWA fix: Ensure proper initialization
+        console.log('PWA: Starting initialization...');
+        
+        // Force immediate visibility for PWA standalone mode
+        if (window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true) {
+            console.log('PWA: Standalone mode detected - applying fixes');
+            
+            // Apply critical fixes immediately
+            document.documentElement.style.background = '#000000';
+            document.documentElement.style.color = '#ffffff';
+            document.body.style.background = '#000000';
+            document.body.style.color = '#ffffff';
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+        }
+        
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -119,7 +137,7 @@
                         console.error('Service Worker registration failed:', error);
                     });
             });
-                }
+        }
         
         // Show update notification
         function showUpdateNotification() {
@@ -185,7 +203,10 @@
         if (window.matchMedia('(display-mode: standalone)').matches || 
             window.navigator.standalone === true) {
             document.body.classList.add('standalone');
+            console.log('PWA: Standalone mode active');
         }
+        
+        console.log('PWA: Initialization complete');
     </script>
     
     {% block scripts %}{% endblock %}

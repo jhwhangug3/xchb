@@ -74,6 +74,9 @@ html {
     /* Remove scrollbars completely */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* Internet Explorer 10+ */
+    /* Critical PWA fix */
+    background: var(--black) !important;
+    color: var(--white) !important;
 }
 
 /* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
@@ -87,7 +90,7 @@ body {
     font-size: 14px;
     line-height: 1.5;
     color: var(--white);
-    background: var(--black);
+    background: var(--black) !important; /* Force black background */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -114,6 +117,10 @@ body {
     /* Remove scrollbars completely */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* Internet Explorer 10+ */
+    /* Critical PWA fix - ensure visibility */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
@@ -3581,4 +3588,147 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
         border-color: var(--gray-200);
         color: var(--black);
     }
+}
+
+/* PWA Critical Fixes - Prevent Black Screen */
+/* Ensure body is always visible in PWA standalone mode */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'SF Pro Display', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--white);
+    background: var(--black) !important; /* Force black background */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    margin: 0;
+    padding: 0;
+    /* Prevent any unwanted scrolling behavior */
+    overscroll-behavior: none;
+    /* Handle mobile viewport changes */
+    height: 100vh;
+    height: 100dvh;
+    height: 100svh;
+    /* Ensure body adapts to mobile keyboard */
+    min-height: 100svh;
+    /* Handle mobile viewport changes smoothly */
+    transition: height 0.3s ease;
+    /* Ensure proper stacking context for fixed elements */
+    position: relative;
+    /* Prevent any interference with fixed bottom nav */
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent any transform that might affect fixed positioning */
+    transform: none;
+    /* Remove scrollbars completely */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    /* Critical PWA fix - ensure visibility */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Critical PWA fix for standalone mode */
+@media (display-mode: standalone) {
+    body {
+        background: var(--black) !important;
+        color: var(--white) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        /* Ensure proper viewport handling */
+        height: 100vh !important;
+        height: 100dvh !important;
+        height: 100svh !important;
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        min-height: 100svh !important;
+    }
+    
+    /* Ensure main content wrapper is visible */
+    .main-content-wrapper {
+        background: var(--black) !important;
+        color: var(--white) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: calc(100vh - 56px - 80px) !important;
+        min-height: calc(100dvh - 56px - 80px) !important;
+        min-height: calc(100svh - 56px - 80px) !important;
+    }
+    
+    /* Ensure navigation is visible */
+    .navbar-meow,
+    .bottom-nav {
+        background: var(--black) !important;
+        color: var(--white) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Force all text to be visible */
+    * {
+        color: var(--white) !important;
+    }
+    
+    /* Ensure proper contrast for all elements */
+    .card,
+    .dashboard-container,
+    .profile-container,
+    .chat-container {
+        background: var(--gray-900) !important;
+        color: var(--white) !important;
+        border-color: var(--gray-800) !important;
+    }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+    body {
+        /* iOS Safari viewport fixes */
+        height: 100vh !important;
+        height: -webkit-fill-available !important;
+        min-height: 100vh !important;
+        min-height: -webkit-fill-available !important;
+    }
+    
+    .main-content-wrapper {
+        min-height: calc(100vh - 56px - 80px) !important;
+        min-height: calc(-webkit-fill-available - 56px - 80px) !important;
+    }
+}
+
+/* Emergency fallback for any black screen issues */
+body:empty,
+body:not(:has(*)) {
+    background: var(--black) !important;
+    color: var(--white) !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    content: "Loading...";
+}
+
+/* Ensure HTML element is also properly styled */
+html {
+    /* Prevent any interference with fixed elements */
+    overflow-x: hidden;
+    /* Ensure proper viewport behavior */
+    height: 100%;
+    /* Prevent any transform that might affect fixed positioning */
+    transform: none;
+    /* Remove scrollbars completely */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    /* Critical PWA fix */
+    background: var(--black) !important;
+    color: var(--white) !important;
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+html::-webkit-scrollbar {
+    display: none;
 }

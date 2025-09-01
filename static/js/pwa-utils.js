@@ -629,6 +629,46 @@ class PWAUtils {
 
 // Initialize PWA utilities when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Critical PWA fix: Ensure proper initialization
+    console.log('PWA Utils: Initializing...');
+    
+    // Force body visibility for PWA standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+        console.log('PWA Utils: Standalone mode detected');
+        
+        // Ensure body is visible
+        document.body.style.display = 'block';
+        document.body.style.visibility = 'visible';
+        document.body.style.opacity = '1';
+        document.body.style.background = '#000000';
+        document.body.style.color = '#ffffff';
+        
+        // Ensure main content is visible
+        const mainContent = document.querySelector('.main-content-wrapper');
+        if (mainContent) {
+            mainContent.style.display = 'block';
+            mainContent.style.visibility = 'visible';
+            mainContent.style.opacity = '1';
+            mainContent.style.background = '#000000';
+            mainContent.style.color = '#ffffff';
+        }
+        
+        // Ensure navigation is visible
+        const topNav = document.getElementById('topNav');
+        const bottomNav = document.getElementById('bottomNav');
+        if (topNav) {
+            topNav.style.display = 'block';
+            topNav.style.visibility = 'visible';
+            topNav.style.opacity = '1';
+        }
+        if (bottomNav) {
+            bottomNav.style.display = 'block';
+            bottomNav.style.visibility = 'visible';
+            bottomNav.style.opacity = '1';
+        }
+    }
+    
     window.pwaUtils = new PWAUtils();
     
     // Show splash screen only for standalone mode (installed PWA) and only once
@@ -641,6 +681,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Track performance
     window.pwaUtils.trackPerformance();
+    
+    console.log('PWA Utils: Initialization complete');
 });
 
 // Export for use in other scripts
