@@ -114,22 +114,6 @@
 
                         // Check for updates immediately
                         registration.update();
-                        
-                        // Request notification permission immediately on first visit
-                        if ('Notification' in window && Notification.permission === 'default') {
-                            // Request permission directly without custom prompt
-                            Notification.requestPermission().then(permission => {
-                                if (permission === 'granted') {
-                                    console.log('Notification permission granted');
-                                    // Subscribe to push notifications automatically
-                                    if (window.pwaUtils) {
-                                        window.pwaUtils.subscribeToNotifications();
-                                    }
-                                } else {
-                                    console.log('Notification permission denied');
-                                }
-                            });
-                        }
                     })
                     .catch((error) => {
                         console.error('Service Worker registration failed:', error);

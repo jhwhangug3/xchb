@@ -7,7 +7,12 @@
     <div class="dashboard-inner">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0">Notifications</h4>
-            <span class="badge bg-light text-dark" id="requestCount">{{ pending_requests|length }}</span>
+            <div class="d-flex align-items-center gap-3">
+                <button id="enableNotificationsBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
+                    <i class="fas fa-bell"></i> Enable Notifications
+                </button>
+                <span class="badge bg-light text-dark" id="requestCount">{{ pending_requests|length }}</span>
+            </div>
         </div>
         
         {% if pending_requests %}
@@ -218,6 +223,52 @@
         setInterval(function() {
             location.reload();
         }, 30000);
+        
+        // Check notification permission and show/hide enable button
+        checkNotificationPermission();
+    });
+    
+    // Check notification permission status
+    function checkNotificationPermission() {
+        const enableBtn = document.getElementById('enableNotificationsBtn');
+        
+        if (!enableBtn) return;
+        
+        // Only show button if notifications are not enabled
+        if ('Notification' in window) {
+            if (Notification.permission === 'default') {
+                enableBtn.style.display = 'inline-block';
+            } else {
+                enableBtn.style.display = 'none';
+            }
+        } else {
+            enableBtn.style.display = 'none';
+        }
+    }
+    
+    // Enable notifications button click handler
+    document.getElementById('enableNotificationsBtn').addEventListener('click', async function() {
+        try {
+            const permission = await Notification.requestPermission();
+            
+            if (permission === 'granted') {
+                // Subscribe to push notifications
+                if (window.pwaUtils) {
+                    await window.pwaUtils.subscribeToNotifications();
+                }
+                
+                // Hide the button
+                this.style.display = 'none';
+                
+                // Show success message
+                showToast('Notifications enabled successfully!', 'success');
+            } else {
+                showToast('Notification permission denied.', 'error');
+            }
+        } catch (error) {
+            console.error('Error requesting notification permission:', error);
+            showToast('Failed to enable notifications.', 'error');
+        }
     });
 </script>
 
