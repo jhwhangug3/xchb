@@ -84,6 +84,183 @@ def trigger_pwa_update():
         'timestamp': datetime.utcnow().isoformat()
     })
 
+# Push Notification Configuration
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', 'your-vapid-private-key-here')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', 'BEl62iUYgUivxIkv69yViEuiBIa1lQJYlX8fXGXKzJvM7vC6lWJVzVcVuMA5R5FPRL0fXFAYxB2dJDLXzgxdkXJY')
+VAPID_EMAIL = os.environ.get('VAPID_EMAIL', 'your-email@example.com')
+
+# Store push subscriptions (in production, use a database)
+push_subscriptions = {}
+
+@app.route('/api/notifications/subscribe', methods=['POST'])
+def subscribe_to_notifications():
+    """Subscribe user to push notifications"""
+    try:
+        data = request.get_json()
+        subscription_info = data.get('subscription')
+        user_id = data.get('userId', 'anonymous')
+        
+        if not subscription_info:
+            return jsonify({'error': 'No subscription data provided'}), 400
+        
+        # Store subscription
+        push_subscriptions[user_id] = subscription_info
+        
+        print(f"User {user_id} subscribed to push notifications")
+        return jsonify({'message': 'Successfully subscribed to push notifications'})
+        
+    except Exception as e:
+        print(f"Error subscribing to notifications: {e}")
+        return jsonify({'error': 'Failed to subscribe'}), 500
+
+@app.route('/api/notifications/unsubscribe', methods=['POST'])
+def unsubscribe_from_notifications():
+    """Unsubscribe user from push notifications"""
+    try:
+        data = request.get_json()
+        user_id = data.get('userId', 'anonymous')
+        
+        if user_id in push_subscriptions:
+            del push_subscriptions[user_id]
+            print(f"User {user_id} unsubscribed from push notifications")
+        
+        return jsonify({'message': 'Successfully unsubscribed from push notifications'})
+        
+    except Exception as e:
+        print(f"Error unsubscribing from notifications: {e}")
+        return jsonify({'error': 'Failed to unsubscribe'}), 500
+
+@app.route('/api/notifications/test', methods=['POST'])
+def send_test_notification():
+    """Send a test push notification"""
+    try:
+        data = request.get_json()
+        user_id = data.get('userId', 'anonymous')
+        title = data.get('title', 'Test Notification')
+        body = data.get('body', 'This is a test notification')
+        icon = data.get('icon', '/static/images/fav.png')
+        url = data.get('url', '/dashboard')
+        
+        if user_id not in push_subscriptions:
+            return jsonify({'error': 'User not subscribed to notifications'}), 404
+        
+        subscription_info = push_subscriptions[user_id]
+        
+        # Prepare notification payload
+        payload = {
+            'title': title,
+            'body': body,
+            'icon': icon,
+            'url': url,
+            'tag': 'test-notification',
+            'requireInteraction': False,
+            'silent': False,
+            'vibrate': [200, 100, 200],
+            'actions': [
+                {
+                    'action': 'view',
+                    'title': 'View',
+                    'icon': icon
+                },
+                {
+                    'action': 'dismiss',
+                    'title': 'Dismiss',
+                    'icon': icon
+                }
+            ]
+        }
+        
+        # Send push notification
+        if PUSH_AVAILABLE:
+            try:
+                webpush(
+                    subscription_info=subscription_info,
+                    data=json.dumps(payload),
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims={
+                        'sub': f'mailto:{VAPID_EMAIL}'
+                    }
+                )
+                print(f"Test notification sent to user {user_id}")
+                return jsonify({'message': 'Test notification sent successfully'})
+            except WebPushException as e:
+                print(f"WebPush error: {e}")
+                return jsonify({'error': 'Failed to send push notification'}), 500
+        else:
+            return jsonify({'error': 'Push notifications not available'}), 500
+        
+    except Exception as e:
+        print(f"Error sending test notification: {e}")
+        return jsonify({'error': 'Failed to send test notification'}), 500
+
+@app.route('/api/notifications/send', methods=['POST'])
+def send_notification():
+    """Send a push notification to a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('userId')
+        title = data.get('title', 'meowCHAT')
+        body = data.get('body', 'You have a new message!')
+        icon = data.get('icon', '/static/images/fav.png')
+        url = data.get('url', '/dashboard')
+        
+        if not user_id or user_id not in push_subscriptions:
+            return jsonify({'error': 'User not found or not subscribed'}), 404
+        
+        subscription_info = push_subscriptions[user_id]
+        
+        # Prepare notification payload
+        payload = {
+            'title': title,
+            'body': body,
+            'icon': icon,
+            'url': url,
+            'tag': 'meowchat-notification',
+            'requireInteraction': False,
+            'silent': False,
+            'vibrate': [200, 100, 200],
+            'actions': [
+                {
+                    'action': 'view',
+                    'title': 'View',
+                    'icon': icon
+                },
+                {
+                    'action': 'dismiss',
+                    'title': 'Dismiss',
+                    'icon': icon
+                }
+            ]
+        }
+        
+        # Send push notification
+        if PUSH_AVAILABLE:
+            try:
+                webpush(
+                    subscription_info=subscription_info,
+                    data=json.dumps(payload),
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims={
+                        'sub': f'mailto:{VAPID_EMAIL}'
+                    }
+                )
+                print(f"Notification sent to user {user_id}")
+                return jsonify({'message': 'Notification sent successfully'})
+            except WebPushException as e:
+                print(f"WebPush error: {e}")
+                return jsonify({'error': 'Failed to send push notification'}), 500
+        else:
+            return jsonify({'error': 'Push notifications not available'}), 500
+        
+    except Exception as e:
+        print(f"Error sending notification: {e}")
+        return jsonify({'error': 'Failed to send notification'}), 500
+
+@app.route('/api/notifications/vapid-public-key')
+def get_vapid_public_key():
+    """Get VAPID public key for client-side subscription"""
+    return jsonify({'publicKey': VAPID_PUBLIC_KEY})
+
 # Database configuration: Prefer env var, fallback to provided Render Postgres URL
 _default_postgres_url = (
     'postgresql+psycopg://database_db_81rr_user:'
