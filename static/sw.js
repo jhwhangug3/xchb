@@ -216,88 +216,68 @@ async function handlePageRequest(request) {
 
 // Show notification when a push arrives
 self.addEventListener('push', (event) => {
-    console.log('Push notification received:', event);
-    
-    let notificationData = {
-        title: 'meowCHAT',
-        body: 'You have a new message!',
-        icon: '/static/images/fav.png',
-        badge: '/static/images/fav.png',
-        tag: 'meowchat-notification',
-        requireInteraction: false,
-        silent: false,
-        vibrate: [200, 100, 200],
-        data: {
-            url: '/dashboard',
-            timestamp: Date.now()
+    try {
+        const data = event.data ? event.data.json() : {};
+        const title = data.title || 'meowCHAT';
+        const body = data.body || 'New message';
+        const url = data.url || '/dashboard';
+        const options = {
+            body,
+            icon: '/static/images/fav.png',
+            badge: '/static/images/fav.png',
+      data: { url },
+      requireInteraction: true,
+      actions: [
+        {
+          action: 'open',
+          title: 'Open',
+          icon: '/static/images/fav.png'
         },
-        actions: [
-            {
-                action: 'view',
-                title: 'View',
-                icon: '/static/images/fav.png'
-            },
-            {
-                action: 'dismiss',
-                title: 'Dismiss',
-                icon: '/static/images/fav.png'
-            }
-        ]
-    };
-
-    // If we have push data, use it
-    if (event.data) {
-        try {
-            const pushData = event.data.json();
-            notificationData = {
-                ...notificationData,
-                ...pushData
-            };
-        } catch (error) {
-            console.error('Error parsing push data:', error);
+        {
+          action: 'close',
+          title: 'Close',
+          icon: '/static/images/fav.png'
         }
+      ]
+        };
+        event.waitUntil(self.registration.showNotification(title, options));
+    } catch (e) {
+        // Fallback if not JSON
+    event.waitUntil(self.registration.showNotification('meowCHAT', { 
+      body: 'New message',
+      icon: '/static/images/fav.png'
+    }));
     }
-
-    // Show the notification
-    event.waitUntil(
-        self.registration.showNotification(notificationData.title, notificationData)
-    );
 });
 
 self.addEventListener('notificationclick', (event) => {
-    console.log('Notification clicked:', event);
-    
     event.notification.close();
+  
+  if (event.action === 'close') {
+    return;
+  }
 
-    if (event.action === 'dismiss') {
-        return;
-    }
-
-    // Default action or 'view' action
+    const url = (event.notification.data && event.notification.data.url) || '/dashboard';
     event.waitUntil(
-        clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
-        }).then((clientList) => {
-            // Check if there's already a window/tab open
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if there's already a window/tab open with the target URL
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If so, focus it
             for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                    return client.focus();
-                }
-            }
-            
-            // If no window/tab is open, open a new one
-            if (clients.openWindow) {
-                const urlToOpen = event.notification.data?.url || '/dashboard';
-                return clients.openWindow(urlToOpen);
-            }
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise, open a new window/tab
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
         })
     );
-});
-
-self.addEventListener('notificationclose', (event) => {
-    console.log('Notification closed:', event);
-    // You can track notification close events here
 });
 
 // Background sync for offline actions

@@ -16,25 +16,6 @@
             <div class="search-results mt-2" id="searchResults" style="display: none;"></div>
         </div>
         
-        <!-- Notification Settings -->
-        <div class="notification-settings">
-            <h3>Push Notifications</h3>
-            <div class="notification-controls">
-                <button id="enableNotifications" class="btn btn-primary" onclick="window.pwaUtils.setupNotificationPermission()">
-                    <i class="fas fa-bell"></i> Enable Notifications
-                </button>
-                <button id="testNotification" class="btn btn-secondary" onclick="window.pwaUtils.testPushNotification()" style="display: none;">
-                    <i class="fas fa-paper-plane"></i> Test Notification
-                </button>
-                <button id="disableNotifications" class="btn btn-danger" onclick="window.pwaUtils.unsubscribeFromPushNotifications()" style="display: none;">
-                    <i class="fas fa-bell-slash"></i> Disable Notifications
-                </button>
-            </div>
-            <p class="notification-info">
-                Get real-time notifications even when the app is closed or you're using other apps.
-            </p>
-        </div>
-
         <!-- Posts Feed -->
         <div class="posts-feed" id="postsFeed">
             <div class="posts-container" id="postsContainer">
