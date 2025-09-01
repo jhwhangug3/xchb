@@ -1,0 +1,65 @@
+{
+  "name": "meowCHAT",
+  "short_name": "meowCHAT",
+  "description": "A modern social media and messaging platform",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["social", "communication", "entertainment"],
+  "icons": [
+    {
+      "src": "/static/images/fav.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/images/fav.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "Go to dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/static/images/fav.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Chat",
+      "description": "Open messaging",
+      "url": "/messaging",
+      "icons": [
+        {
+          "src": "/static/images/fav.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Create Post",
+      "short_name": "Post",
+      "description": "Create a new post",
+      "url": "/create-post",
+      "icons": [
+        {
+          "src": "/static/images/fav.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
