@@ -216,15 +216,15 @@ async function handlePageRequest(request) {
 
 // Show notification when a push arrives
 self.addEventListener('push', (event) => {
-  try {
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || 'meowCHAT';
-    const body = data.body || 'New message';
-    const url = data.url || '/dashboard';
-    const options = {
-      body,
-      icon: '/static/images/fav.png',
-      badge: '/static/images/fav.png',
+    try {
+        const data = event.data ? event.data.json() : {};
+        const title = data.title || 'meowCHAT';
+        const body = data.body || 'New message';
+        const url = data.url || '/dashboard';
+        const options = {
+            body,
+            icon: '/static/images/fav.png',
+            badge: '/static/images/fav.png',
       data: { url },
       requireInteraction: true,
       actions: [
@@ -239,27 +239,27 @@ self.addEventListener('push', (event) => {
           icon: '/static/images/fav.png'
         }
       ]
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (e) {
-    // Fallback if not JSON
+        };
+        event.waitUntil(self.registration.showNotification(title, options));
+    } catch (e) {
+        // Fallback if not JSON
     event.waitUntil(self.registration.showNotification('meowCHAT', { 
       body: 'New message',
       icon: '/static/images/fav.png'
     }));
-  }
+    }
 });
 
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+    event.notification.close();
   
   if (event.action === 'close') {
     return;
   }
 
-  const url = (event.notification.data && event.notification.data.url) || '/dashboard';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    const url = (event.notification.data && event.notification.data.url) || '/dashboard';
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Check if there's already a window/tab open with the target URL
       for (const client of clientList) {
         if (client.url === url && 'focus' in client) {
@@ -267,7 +267,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       // If so, focus it
-      for (const client of clientList) {
+            for (const client of clientList) {
         if ('focus' in client) {
           return client.focus();
         }
@@ -276,8 +276,8 @@ self.addEventListener('notificationclick', (event) => {
       if (self.clients.openWindow) {
         return self.clients.openWindow(url);
       }
-    })
-  );
+        })
+    );
 });
 
 // Background sync for offline actions

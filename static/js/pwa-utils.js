@@ -14,6 +14,10 @@ class PWAUtils {
         this.setupBackgroundSync();
         this.setupAutoUpdates();
         this.setupServiceWorkerMessages();
+        this.setupInstallPrompt();
+        this.setupPullToRefresh(); // Add pull-to-refresh
+        this.setupHapticFeedback(); // Add haptic feedback
+        this.setupSwipeGestures(); // Add swipe gestures
     }
 
     setupAutoUpdates() {
@@ -87,6 +91,9 @@ class PWAUtils {
                 const cacheNames = await caches.keys();
                 await Promise.all(cacheNames.map(name => caches.delete(name)));
             }
+
+            // Reset splash screen state for new version
+            this.resetSplashScreen();
 
             // Reload the page to get fresh content
             window.location.reload();
@@ -254,8 +261,14 @@ class PWAUtils {
         // Disabled - bottom navigation handles this
     }
 
-    // Splash screen
+    // Splash screen - Only show once on initial app load
     showSplashScreen() {
+        // Only show splash screen if this is the first time loading the app
+        // and we're on the dashboard (main entry point)
+        if (sessionStorage.getItem('splashShown') || window.location.pathname !== '/dashboard') {
+            return;
+        }
+        
         const splash = document.createElement('div');
         splash.className = 'pwa-splash';
         splash.innerHTML = `
@@ -267,6 +280,9 @@ class PWAUtils {
         `;
         document.body.appendChild(splash);
 
+        // Mark splash as shown
+        sessionStorage.setItem('splashShown', 'true');
+
         // Hide splash screen after a short delay
         setTimeout(() => {
             splash.classList.add('hide');
@@ -274,6 +290,127 @@ class PWAUtils {
                 splash.remove();
             }, 300);
         }, 1500);
+    }
+
+    // Install prompt functionality
+    setupInstallPrompt() {
+        // Listen for the beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            
+            // Stash the event so it can be triggered later
+            this.deferredPrompt = e;
+            
+            // Show our custom install prompt
+            this.showInstallPrompt();
+        });
+        
+        // Listen for successful installation
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            this.hideInstallPrompt();
+            // Clear the deferredPrompt
+            this.deferredPrompt = null;
+        });
+    }
+    
+    showInstallPrompt() {
+        // Don't show if already shown recently or if user dismissed it
+        if (localStorage.getItem('installPromptDismissed') || 
+            localStorage.getItem('installPromptShown')) {
+            return;
+        }
+        
+        // Mark as shown
+        localStorage.setItem('installPromptShown', 'true');
+        
+        // Create install prompt
+        const prompt = document.createElement('div');
+        prompt.className = 'install-prompt';
+        prompt.innerHTML = `
+            <div class="install-prompt-content">
+                <div class="install-prompt-icon">
+                    <img src="/static/images/fav.png" alt="meowCHAT">
+                </div>
+                <div class="install-prompt-text">
+                    <h3>Install meowCHAT</h3>
+                    <p>Add to home screen for quick access and offline use</p>
+                </div>
+                <button class="install-btn" onclick="window.pwaUtils.installApp()">
+                    <i class="fas fa-download"></i>
+                    Install
+                </button>
+                <button class="close-btn" onclick="window.pwaUtils.hideInstallPrompt()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(prompt);
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            this.hideInstallPrompt();
+        }, 10000);
+    }
+    
+    hideInstallPrompt() {
+        const prompt = document.querySelector('.install-prompt');
+        if (prompt) {
+            prompt.remove();
+        }
+    }
+    
+    async installApp() {
+        if (this.deferredPrompt) {
+            // Show the install prompt
+            this.deferredPrompt.prompt();
+            
+            // Wait for the user to respond to the prompt
+            const { outcome } = await this.deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+            } else {
+                console.log('User dismissed the install prompt');
+            }
+            
+            // Clear the deferredPrompt
+            this.deferredPrompt = null;
+            
+            // Hide our custom prompt
+            this.hideInstallPrompt();
+        } else {
+            // Fallback for browsers that don't support beforeinstallprompt
+            this.showManualInstallInstructions();
+        }
+    }
+    
+    showManualInstallInstructions() {
+        const instructions = document.createElement('div');
+        instructions.className = 'install-instructions';
+        instructions.innerHTML = `
+            <div class="install-instructions-content">
+                <h3>Install meowCHAT</h3>
+                <p>To install this app:</p>
+                <ul>
+                    <li><strong>Chrome/Edge:</strong> Tap the menu (⋮) and select "Add to Home screen"</li>
+                    <li><strong>Safari:</strong> Tap the share button and select "Add to Home Screen"</li>
+                    <li><strong>Firefox:</strong> Tap the menu and select "Add to Home Screen"</li>
+                </ul>
+                <button onclick="this.parentElement.parentElement.remove()" class="close-btn">
+                    Got it
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(instructions);
+    }
+
+    // Reset splash screen state (for testing or updates)
+    resetSplashScreen() {
+        sessionStorage.removeItem('splashShown');
     }
 
     // Performance monitoring
@@ -310,7 +447,7 @@ class PWAUtils {
 document.addEventListener('DOMContentLoaded', () => {
     window.pwaUtils = new PWAUtils();
     
-    // Show splash screen for standalone mode
+    // Show splash screen only for standalone mode (installed PWA) and only once
     if (window.matchMedia('(display-mode: standalone)').matches) {
         window.pwaUtils.showSplashScreen();
     }

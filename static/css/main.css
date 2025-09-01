@@ -3101,6 +3101,156 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
 
 /* Offline Indicator - Removed to keep original design */
 
+/* Install Prompt */
+.install-prompt {
+    position: fixed;
+    bottom: 20px;
+    left: 16px;
+    right: 16px;
+    background: var(--black);
+    border: 1px solid var(--gray-700);
+    border-radius: 16px;
+    padding: 16px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.3s ease-out;
+}
+
+.install-prompt-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.install-prompt-icon {
+    flex-shrink: 0;
+}
+
+.install-prompt-icon img {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+}
+
+.install-prompt-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.install-prompt-text h3 {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--white);
+}
+
+.install-prompt-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--gray-400);
+    line-height: 1.4;
+}
+
+.install-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+}
+
+.install-btn:hover {
+    background: var(--primary-dark);
+}
+
+.close-btn {
+    background: transparent;
+    color: var(--gray-400);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Install Instructions */
+.install-instructions {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--black);
+    border: 1px solid var(--gray-700);
+    border-radius: 16px;
+    padding: 24px;
+    z-index: 1001;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+    max-width: 400px;
+    width: 90%;
+}
+
+.install-instructions-content h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--white);
+    text-align: center;
+}
+
+.install-instructions-content p {
+    margin: 0 0 16px 0;
+    color: var(--gray-300);
+    text-align: center;
+}
+
+.install-instructions-content ul {
+    margin: 0 0 20px 0;
+    padding-left: 20px;
+    color: var(--gray-300);
+}
+
+.install-instructions-content li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.install-instructions-content .close-btn {
+    width: 100%;
+    height: auto;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    font-weight: 500;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 /* PWA Loading Spinner */
 .pwa-loading {
     position: fixed;
@@ -3231,8 +3381,22 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
         gap: 8px;
     }
     
-    .install-prompt span {
+    .install-prompt-text h3 {
         font-size: 0.9rem;
+    }
+    
+    .install-prompt-text p {
+        font-size: 0.8rem;
+    }
+    
+    .install-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .install-prompt-icon img {
+        width: 40px;
+        height: 40px;
     }
     
     /* PWA shortcuts removed - bottom navigation handles this */
