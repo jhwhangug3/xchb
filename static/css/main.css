@@ -3633,8 +3633,8 @@ body {
 /* Critical PWA fix for standalone mode */
 @media (display-mode: standalone) {
     body {
-        background: var(--black) !important;
-        color: var(--white) !important;
+        background: #000000 !important;
+        color: #ffffff !important;
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -3649,8 +3649,8 @@ body {
     
     /* Ensure main content wrapper is visible */
     .main-content-wrapper {
-        background: var(--black) !important;
-        color: var(--white) !important;
+        background: #000000 !important;
+        color: #ffffff !important;
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -3662,8 +3662,8 @@ body {
     /* Ensure navigation is visible */
     .navbar-meow,
     .bottom-nav {
-        background: var(--black) !important;
-        color: var(--white) !important;
+        background: #000000 !important;
+        color: #ffffff !important;
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -3671,7 +3671,7 @@ body {
     
     /* Force all text to be visible */
     * {
-        color: var(--white) !important;
+        color: #ffffff !important;
     }
     
     /* Ensure proper contrast for all elements */
@@ -3679,9 +3679,9 @@ body {
     .dashboard-container,
     .profile-container,
     .chat-container {
-        background: var(--gray-900) !important;
-        color: var(--white) !important;
-        border-color: var(--gray-800) !important;
+        background: #1a1a1a !important;
+        color: #ffffff !important;
+        border-color: #333333 !important;
     }
 }
 

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test</title>
+    <style>
+        body {
+            background: #000000;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .test-content {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success { background: #22c55e; color: white; }
+        .error { background: #ef4444; color: white; }
+        .info { background: #3b82f6; color: white; }
+    </style>
+</head>
+<body>
+    <h1>PWA Test Page</h1>
+    
+    <div class="test-content">
+        <h2>Display Mode Test</h2>
+        <div id="displayMode" class="status info">Checking...</div>
+        
+        <h2>Service Worker Test</h2>
+        <div id="swStatus" class="status info">Checking...</div>
+        
+        <h2>Manifest Test</h2>
+        <div id="manifestStatus" class="status info">Checking...</div>
+        
+        <h2>Content Visibility Test</h2>
+        <div id="contentTest" class="status success">
+            ✅ If you can see this text, content is visible!
+        </div>
+    </div>
+    
+    <div class="test-content">
+        <h2>Navigation Test</h2>
+        <a href="/dashboard" style="color: #ffffff; text-decoration: underline;">Go to Dashboard</a>
+        <br><br>
+        <a href="/pwa-debug" style="color: #ffffff; text-decoration: underline;">Go to PWA Debug</a>
+    </div>
+    
+    <script>
+        // Test display mode
+        function testDisplayMode() {
+            const displayMode = document.getElementById('displayMode');
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                displayMode.className = 'status success';
+                displayMode.textContent = '✅ PWA Standalone Mode Detected';
+            } else if (window.navigator.standalone === true) {
+                displayMode.className = 'status success';
+                displayMode.textContent = '✅ iOS PWA Mode Detected';
+            } else {
+                displayMode.className = 'status info';
+                displayMode.textContent = 'ℹ️ Browser Mode (Not PWA)';
+            }
+        }
+        
+        // Test service worker
+        function testServiceWorker() {
+            const swStatus = document.getElementById('swStatus');
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(registration => {
+                    if (registration) {
+                        swStatus.className = 'status success';
+                        swStatus.textContent = '✅ Service Worker Registered';
+                    } else {
+                        swStatus.className = 'status error';
+                        swStatus.textContent = '❌ Service Worker Not Registered';
+                    }
+                }).catch(() => {
+                    swStatus.className = 'status error';
+                    swStatus.textContent = '❌ Service Worker Error';
+                });
+            } else {
+                swStatus.className = 'status error';
+                swStatus.textContent = '❌ Service Worker Not Supported';
+            }
+        }
+        
+        // Test manifest
+        function testManifest() {
+            const manifestStatus = document.getElementById('manifestStatus');
+            if ('serviceWorker' in navigator) {
+                fetch('/manifest.json')
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Manifest not found');
+                    })
+                    .then(manifest => {
+                        manifestStatus.className = 'status success';
+                        manifestStatus.textContent = `✅ Manifest Loaded: ${manifest.name}`;
+                    })
+                    .catch(error => {
+                        manifestStatus.className = 'status error';
+                        manifestStatus.textContent = `❌ Manifest Error: ${error.message}`;
+                    });
+            }
+        }
+        
+        // Run tests
+        document.addEventListener('DOMContentLoaded', () => {
+            testDisplayMode();
+            testServiceWorker();
+            testManifest();
+        });
+    </script>
+</body>
+</html>

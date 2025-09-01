@@ -985,6 +985,11 @@ def test_notification():
         print(f"❌ Error sending test notification: {e}")
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
+@app.route('/pwa-test')
+def pwa_test():
+    """PWA Test page for debugging black screen issues"""
+    return render_template('pwa_test.html')
+
 @app.route('/pwa-debug')
 def pwa_debug():
     """PWA Debug page for troubleshooting black screen issues"""
