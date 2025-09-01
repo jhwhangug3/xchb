@@ -953,38 +953,13 @@
             notifyNewMessage(fromName, text) {
                 try {
                     const body = String(text).slice(0, 120);
-                    
-                    // Check if notifications are supported and permission is granted
-                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                        // Show notification if page is not focused or is hidden
-                        if (document.visibilityState === 'hidden' || !document.hasFocus()) {
-                            const n = new Notification(`${fromName}`, { 
-                                body,
-                                icon: '/static/images/fav.png',
-                                badge: '/static/images/fav.png',
-                                tag: 'chat-message',
-                                requireInteraction: false,
-                                silent: false
-                            });
-                            
-                            // Auto-close notification after 4 seconds
-                            setTimeout(() => { 
-                                try { n.close(); } catch (_) {} 
-                            }, 4000);
-                            
-                            // Focus the window when notification is clicked
-                            n.onclick = function() {
-                                window.focus();
-                                n.close();
-                            };
-                        }
+                    if (document.visibilityState === 'hidden' && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                        const n = new Notification(`${fromName}`, { body });
+                        setTimeout(() => { try { n.close(); } catch (_) {} }, 4000);
                     }
-                    
-                    // Always play a tone for incoming messages (if user has interacted with the page)
+                    // Play a short tone when page is visible or hidden (browsers require user gesture; will work after first interaction)
                     this.playTone();
-                } catch (error) {
-                    console.error('Error showing notification:', error);
-                }
+                } catch (_) {}
             }
 
             playTone() {
@@ -1056,16 +1031,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Add chat-active class to body to prevent page scrolling and hide bottom nav
             document.body.classList.add('chat-active');
-            
-            // Ensure notifications are properly set up
-            if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-                // Request notification permission if not already granted/denied
-                Notification.requestPermission().then(permission => {
-                    console.log('Notification permission:', permission);
-                    localStorage.setItem('notificationPermission', permission);
-                });
-            }
-            
             window.ultraFastChatApp = new UltraFastChatApp();
             
             const chatMessages = document.getElementById('chatMessages');

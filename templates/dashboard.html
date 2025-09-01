@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - ChatApp{% endblock %}
+{% block title %}Dashboard - meowCHAT{% endblock %}
 
 {% block content %}
 <div class="dashboard-content">
@@ -14,6 +14,31 @@
                 <input type="text" class="form-control border-0" id="userSearch" placeholder="Search for users to add as friends...">
             </div>
             <div class="search-results mt-2" id="searchResults" style="display: none;"></div>
+        </div>
+        
+        <!-- Notification Test Section - Only show if notifications not enabled -->
+        <div class="notification-test-section mb-4" id="notificationTestSection" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-bell"></i> Enable Push Notifications</h5>
+                </div>
+                <div class="card-body">
+                    <p>Get notified when someone likes your posts, sends you a message, or requests to be your friend.</p>
+                    <div class="notification-test-buttons">
+                        <button class="btn btn-primary" onclick="window.pwaUtils.notificationManager.requestPermission()">
+                            <i class="fas fa-bell"></i> Enable Notifications
+                        </button>
+                        <button class="btn btn-secondary" onclick="hideNotificationSection()">
+                            <i class="fas fa-times"></i> Not Now
+                        </button>
+                    </div>
+                    <div class="notification-status mt-3">
+                        <small class="text-muted">
+                            Status: <span id="notification-status">Checking...</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Posts Feed -->
@@ -854,5 +879,79 @@
             alert('Failed to delete comment');
         }
     }
+</script>
+
+<script>
+// Update notification status and show/hide notification section
+document.addEventListener('DOMContentLoaded', function() {
+    const statusElement = document.getElementById('notification-status');
+    const notificationSection = document.getElementById('notificationTestSection');
+    
+    if (window.pwaUtils && window.pwaUtils.notificationManager) {
+        const manager = window.pwaUtils.notificationManager;
+        
+        // Check if notifications are already enabled
+        if (manager.permission === 'granted') {
+            statusElement.textContent = 'Notifications Enabled';
+            statusElement.className = 'text-success';
+            // Hide the notification section since notifications are already enabled
+            notificationSection.style.display = 'none';
+        } else if (manager.permission === 'denied') {
+            statusElement.textContent = 'Notifications Disabled';
+            statusElement.className = 'text-danger';
+            // Show the notification section to encourage enabling
+            notificationSection.style.display = 'block';
+        } else {
+            statusElement.textContent = 'Permission Not Requested';
+            statusElement.className = 'text-warning';
+            // Show the notification section to request permission
+            notificationSection.style.display = 'block';
+        }
+        
+        // Listen for permission changes
+        manager.onPermissionChange = function(newPermission) {
+            if (newPermission === 'granted') {
+                statusElement.textContent = 'Notifications Enabled';
+                statusElement.className = 'text-success';
+                // Hide the notification section once enabled
+                notificationSection.style.display = 'none';
+                // Show success message
+                showNotificationSuccess('Notifications enabled successfully!');
+            } else {
+                statusElement.textContent = 'Notifications Disabled';
+                statusElement.className = 'text-danger';
+            }
+        };
+    } else {
+        statusElement.textContent = 'Notification System Not Available';
+        statusElement.className = 'text-muted';
+        // Hide the notification section if system not available
+        notificationSection.style.display = 'none';
+    }
+});
+
+// Function to hide notification section when user clicks "Not Now"
+function hideNotificationSection() {
+    const notificationSection = document.getElementById('notificationTestSection');
+    notificationSection.style.display = 'none';
+    // Store that user dismissed the notification prompt
+    localStorage.setItem('notificationPromptDismissed', 'true');
+}
+
+// Function to show success notification
+function showNotificationSuccess(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification-toast success';
+    notification.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
 </script>
 {% endblock %}
