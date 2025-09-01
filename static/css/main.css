@@ -1,10 +1,19 @@
-/* ===== MINIMAL BLACK & WHITE CHAT APP CSS ===== */
-/* Reset and Base Styles */
+/* Global scrollbar removal for native app feel */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Remove scrollbars on all elements */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+    display: none;
+}
+
+/* Root design tokens */
 
 /* Root design tokens */
 :root {
@@ -54,6 +63,24 @@
     --transition-slow: 250ms ease;
 }
 
+/* Ensure HTML and body don't interfere with fixed positioning */
+html {
+    /* Prevent any interference with fixed elements */
+    overflow-x: hidden;
+    /* Ensure proper viewport behavior */
+    height: 100%;
+    /* Prevent any transform that might affect fixed positioning */
+    transform: none;
+    /* Remove scrollbars completely */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+html::-webkit-scrollbar {
+    display: none;
+}
+
 /* Base Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'SF Pro Display', Roboto, sans-serif;
@@ -77,6 +104,21 @@ body {
     min-height: 100svh;
     /* Handle mobile viewport changes smoothly */
     transition: height 0.3s ease;
+    /* Ensure proper stacking context for fixed elements */
+    position: relative;
+    /* Prevent any interference with fixed bottom nav */
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent any transform that might affect fixed positioning */
+    transform: none;
+    /* Remove scrollbars completely */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+body::-webkit-scrollbar {
+    display: none;
 }
 
 /* Prevent body scroll when chat is active */
@@ -275,18 +317,37 @@ p {
     border-bottom: none;
 }
 
-/* Bottom Navigation Bar - Instagram/Threads Style */
+/* Ensure bottom nav is always fixed regardless of parent containers */
 .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
     background: var(--black);
     border-top: 1px solid var(--gray-800);
     backdrop-filter: blur(10px);
     background: rgba(0, 0, 0, 0.98);
     padding-bottom: env(safe-area-inset-bottom);
+    /* Ensure it stays fixed and doesn't move with scroll */
+    transform: translateZ(0);
+    will-change: transform;
+    /* Prevent any unwanted movement */
+    backface-visibility: hidden;
+    /* Ensure it's always on top */
+    z-index: 9999;
+    /* Prevent any scroll interference */
+    pointer-events: auto;
+    /* Ensure it doesn't move with page scroll */
+    position: fixed !important;
+    /* Override any parent transform or positioning */
+    transform: none !important;
+    /* Ensure it's positioned relative to viewport, not any parent */
+    position: fixed !important;
+    /* Prevent any CSS that might affect positioning */
+    top: auto !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
 }
 
 .bottom-nav-inner {
@@ -295,6 +356,12 @@ p {
     justify-content: space-around;
     padding: 12px 0;
     max-width: 100%;
+    /* Ensure inner container doesn't move */
+    position: relative;
+    /* Prevent any transform that might affect positioning */
+    transform: none;
+    /* Ensure it stays in place */
+    will-change: auto;
 }
 
 .bottom-nav .nav-item {
@@ -356,6 +423,21 @@ p {
 .main-content-wrapper {
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
     min-height: calc(100vh - 56px - 80px);
+    /* Ensure content doesn't interfere with fixed bottom nav */
+    position: relative;
+    z-index: 1;
+    /* Prevent any unwanted scrolling behavior */
+    overflow-x: hidden;
+    /* Ensure proper stacking context */
+    isolation: isolate;
+    /* Remove scrollbars completely */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+.main-content-wrapper::-webkit-scrollbar {
+    display: none;
 }
 
 /* Hide bottom nav on direct chat pages */
@@ -1093,6 +1175,14 @@ body.chat-active .bottom-nav {
     flex: 1;
     overflow-y: auto;
     max-height: calc(90vh - 140px);
+    /* Remove scrollbars for native app feel */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+.comments-content::-webkit-scrollbar {
+    display: none;
 }
 
 .original-post {
@@ -1595,6 +1685,14 @@ body.chat-active .bottom-nav {
     min-height: calc(100svh - 200px);
     /* Handle mobile viewport changes smoothly */
     transition: min-height 0.3s ease;
+    /* Remove scrollbars for native app feel */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+.chat-messages::-webkit-scrollbar {
+    display: none;
 }
 
 .message {
@@ -2187,7 +2285,23 @@ body.chat-active .bottom-nav {
     color: var(--gray-300);
 }
 
-.search-results { max-height: 300px; overflow-y: auto; background: var(--black); border-radius: 20px; border: 1px solid var(--gray-800); box-shadow: var(--shadow-md); -webkit-overflow-scrolling: touch; }
+.search-results { 
+    max-height: 300px; 
+    overflow-y: auto; 
+    background: var(--black); 
+    border-radius: 20px; 
+    border: 1px solid var(--gray-800); 
+    box-shadow: var(--shadow-md); 
+    -webkit-overflow-scrolling: touch; 
+    /* Remove scrollbars for native app feel */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for WebKit browsers (Chrome, Safari, Edge) */
+.search-results::-webkit-scrollbar {
+    display: none;
+}
 
 .search-result-item {
     padding: var(--space-3) var(--space-4);
@@ -2457,6 +2571,10 @@ body.chat-active .bottom-nav {
         right: 0;
         bottom: 0;
         z-index: 1000;
+        /* Ensure no horizontal scrolling on mobile */
+        overflow-x: hidden;
+        width: 100vw;
+        max-width: 100vw;
     }
     
     .chat-header {
@@ -2465,6 +2583,9 @@ body.chat-active .bottom-nav {
         position: sticky;
         top: 0;
         z-index: 1001;
+        /* Ensure header doesn't cause horizontal scroll */
+        width: 100%;
+        max-width: 100%;
     }
     
     .chat-messages {
@@ -2472,6 +2593,9 @@ body.chat-active .bottom-nav {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
         scroll-snap-type: y proximity;
+        /* Ensure no horizontal scrolling */
+        overflow-x: hidden;
+        width: 100%;
     }
     
     .chat-input {
@@ -2479,16 +2603,26 @@ body.chat-active .bottom-nav {
         padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
         border-radius: 0;
         z-index: 1002;
+        /* Ensure input doesn't cause horizontal scroll */
+        width: 100%;
+        max-width: 100%;
     }
     
     .dashboard-container {
         margin-top: 1vh;
         border-radius: var(--radius-lg);
+        /* Ensure no horizontal scrolling */
+        overflow-x: hidden;
+        width: 100%;
+        max-width: 100%;
     }
     
     .dashboard-inner {
         padding: var(--space-4);
         max-width: 100%;
+        /* Ensure no horizontal scrolling */
+        overflow-x: hidden;
+        width: 100%;
     }
     
     .friends-grid {
@@ -3097,6 +3231,37 @@ input:-webkit-autofill, textarea:-webkit-autofill{box-shadow:0 0 0px 1000px var(
 
 .standalone .bottom-nav {
     padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Comprehensive scrollbar removal for native app feel */
+.standalone *,
+.standalone *::-webkit-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    display: none !important;
+}
+
+/* Ensure no horizontal scrolling anywhere in the app */
+* {
+    max-width: 100vw;
+    box-sizing: border-box;
+}
+
+/* Prevent any element from causing horizontal scroll */
+.container,
+.container-fluid,
+.main-content-wrapper,
+.dashboard-content,
+.dashboard-inner,
+.chat-container,
+.chat-messages,
+.chat-input,
+.profile-container,
+.create-post-container,
+.create-post-content {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    width: 100% !important;
 }
 
 /* Offline Indicator - Removed to keep original design */
