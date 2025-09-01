@@ -111,6 +111,14 @@ def static_images(filename):
         return f"Error serving image file: {filename}", 500
 
 # Debug route to check static file serving
+@app.route('/emergency-dashboard')
+def emergency_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    return render_template('emergency_dashboard.html', user=user)
+
 @app.route('/static-test')
 def static_test():
     """Test page for static file serving"""
