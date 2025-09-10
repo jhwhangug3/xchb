@@ -1478,6 +1478,8 @@ def send_direct_message():
     
     db.session.commit()
 
+    # After sending a message, return current unread counts so client list can refresh accurately
+
     # Send Web Push notification to receiver (if configured)
     if PUSH_AVAILABLE and VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY:
         try:
