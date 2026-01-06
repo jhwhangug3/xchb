@@ -530,14 +530,34 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    user = User.query.get(session['user_id'])
-    friends = get_user_friends(session['user_id'])
-    pending_requests = FriendRequest.query.filter_by(
-        receiver_id=session['user_id'], 
-        status='pending'
-    ).all()
-    
-    return render_template('dashboard.html', user=user, friends=friends, pending_requests=pending_requests)
+    try:
+        user = User.query.get(session['user_id'])
+        if not user:
+            flash('User not found. Please login again.', 'error')
+            return redirect(url_for('login'))
+        
+        friends = []
+        pending_requests = []
+        try:
+            friends = get_user_friends(session['user_id'])
+        except Exception as e:
+            print(f"Error fetching friends: {e}")
+            friends = []
+        
+        try:
+            pending_requests = FriendRequest.query.filter_by(
+                receiver_id=session['user_id'], 
+                status='pending'
+            ).all()
+        except Exception as e:
+            print(f"Error fetching pending requests: {e}")
+            pending_requests = []
+        
+        return render_template('dashboard.html', user=user, friends=friends, pending_requests=pending_requests)
+    except Exception as e:
+        print(f"Error in dashboard route: {e}")
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('login'))
 
 # Messaging helpers and page
 def _format_short_time(dt):
@@ -574,96 +594,136 @@ def get_user_conversations(user_id):
                  time_label, unread_count, chat_url }
     """
     out = []
-    friendships = Friendship.query.filter_by(user_id=user_id).all()
+    try:
+        friendships = Friendship.query.filter_by(user_id=user_id).all()
+    except Exception as e:
+        # Database connection error - return empty list gracefully
+        print(f"Error fetching friendships: {e}")
+        return []
+    
     for fr in friendships:
-        friend = User.query.get(fr.friend_id)
-        if not friend:
-            continue
-        chat_session = ChatSession.query.get(fr.chat_session_id)
-        last_message = None
-        if chat_session and chat_session.last_message_id:
-            last_message = Message.query.get(chat_session.last_message_id)
-        if not last_message:
-            # fallback: query the latest message by timestamp for this session
-            last_message = Message.query.filter_by(chat_session_id=fr.chat_session_id)\
-                .order_by(Message.timestamp.desc()).first()
-        last_text = ''
-        last_ts = fr.last_message_at
-        if last_message:
-            prefix = 'You: ' if last_message.sender_id == user_id else ''
-            raw = (last_message.content or '').strip()
-            if last_message.message_type != 'text' and not raw:
-                raw = last_message.message_type.capitalize()
-            text = (raw[:48] + '…') if len(raw) > 49 else raw
-            last_text = f"{prefix}{text}"
-            last_ts = last_message.timestamp or last_ts
-        # Compute accurate unread count from messages table (receiver == me)
         try:
-            unread = Message.query.filter_by(chat_session_id=fr.chat_session_id, receiver_id=user_id, is_read=False).count()
-        except Exception:
-            # fallback to stored counters if something goes wrong
-            if chat_session:
-                if user_id == chat_session.user1_id:
-                    unread = chat_session.unread_count_user1 or 0
-                else:
-                    unread = chat_session.unread_count_user2 or 0
-            else:
-                unread = fr.unread_count or 0
-
-        # Build user-friendly preview per requirements
-        if unread == 0:
-            # No unread: show the actual last sent/received text
-            preview = last_text or 'Start the chat'
-        elif unread == 1:
-            # Exactly one unread: show the most recent unread incoming text
+            friend = User.query.get(fr.friend_id)
+            if not friend:
+                continue
+            
+            chat_session = None
             try:
-                one_unread = Message.query\
-                    .filter_by(chat_session_id=fr.chat_session_id, receiver_id=user_id, is_read=False)\
-                    .order_by(Message.timestamp.desc())\
-                    .first()
-                if one_unread:
-                    rawp = (one_unread.content or '').strip()
-                    preview = (rawp[:48] + '…') if len(rawp) > 49 else rawp
-                else:
-                    preview = '1 message'
+                chat_session = ChatSession.query.get(fr.chat_session_id)
             except Exception:
-                preview = '1 message'
-        elif unread <= 3:
-            # 2–3 unread
-            preview = f"{unread} messages"
-        else:
-            # 4 or more unread
-            preview = '4+ texts'
+                pass  # Chat session might not exist yet
+            
+            last_message = None
+            try:
+                if chat_session and chat_session.last_message_id:
+                    last_message = Message.query.get(chat_session.last_message_id)
+                if not last_message:
+                    # fallback: query the latest message by timestamp for this session
+                    last_message = Message.query.filter_by(chat_session_id=fr.chat_session_id)\
+                        .order_by(Message.timestamp.desc()).first()
+            except Exception:
+                pass  # Skip if message query fails
+            
+            last_text = ''
+            last_ts = fr.last_message_at
+            if last_message:
+                prefix = 'You: ' if last_message.sender_id == user_id else ''
+                raw = (last_message.content or '').strip()
+                if last_message.message_type != 'text' and not raw:
+                    raw = last_message.message_type.capitalize()
+                text = (raw[:48] + '…') if len(raw) > 49 else raw
+                last_text = f"{prefix}{text}"
+                last_ts = last_message.timestamp or last_ts
+            
+            # Compute accurate unread count from messages table (receiver == me)
+            unread = 0
+            try:
+                unread = Message.query.filter_by(chat_session_id=fr.chat_session_id, receiver_id=user_id, is_read=False).count()
+            except Exception:
+                # fallback to stored counters if something goes wrong
+                try:
+                    if chat_session:
+                        if user_id == chat_session.user1_id:
+                            unread = chat_session.unread_count_user1 or 0
+                        else:
+                            unread = chat_session.unread_count_user2 or 0
+                    else:
+                        unread = fr.unread_count or 0
+                except Exception:
+                    unread = 0
 
-        # Badge text mirrors count cap
-        unread_badge = ''
-        if unread > 0:
-            unread_badge = '4+' if unread > 4 else str(unread)
-        out.append({
-            'id': friend.id,
-            'username': friend.username,
-            'first_name': friend.first_name,
-            'profile_picture': friend.profile_picture,
-            'is_online': friend.is_online,
-            'last_text': last_text,
-            'preview': preview,
-            'last_ts': last_ts,
-            'time_label': _format_short_time(last_ts) if last_ts else '',
-            'unread_count': int(unread) if unread else 0,
-            'unread_badge': unread_badge,
-            'chat_url': url_for('direct_chat', user_id=friend.id)
-        })
+            # Build user-friendly preview per requirements
+            if unread == 0:
+                # No unread: show the actual last sent/received text
+                preview = last_text or 'Start the chat'
+            elif unread == 1:
+                # Exactly one unread: show the most recent unread incoming text
+                try:
+                    one_unread = Message.query\
+                        .filter_by(chat_session_id=fr.chat_session_id, receiver_id=user_id, is_read=False)\
+                        .order_by(Message.timestamp.desc())\
+                        .first()
+                    if one_unread:
+                        rawp = (one_unread.content or '').strip()
+                        preview = (rawp[:48] + '…') if len(rawp) > 49 else rawp
+                    else:
+                        preview = '1 message'
+                except Exception:
+                    preview = '1 message'
+            elif unread <= 3:
+                # 2–3 unread
+                preview = f"{unread} messages"
+            else:
+                # 4 or more unread
+                preview = '4+ texts'
+
+            # Badge text mirrors count cap
+            unread_badge = ''
+            if unread > 0:
+                unread_badge = '4+' if unread > 4 else str(unread)
+            
+            out.append({
+                'id': friend.id,
+                'username': friend.username,
+                'first_name': friend.first_name,
+                'profile_picture': friend.profile_picture,
+                'is_online': friend.is_online,
+                'last_text': last_text,
+                'preview': preview,
+                'last_ts': last_ts,
+                'time_label': _format_short_time(last_ts) if last_ts else '',
+                'unread_count': int(unread) if unread else 0,
+                'unread_badge': unread_badge,
+                'chat_url': url_for('direct_chat', user_id=friend.id)
+            })
+        except Exception as e:
+            # Skip this conversation if there's an error processing it
+            print(f"Error processing conversation with friend_id {fr.friend_id}: {e}")
+            continue
+    
     # Sort by last activity desc
-    out.sort(key=lambda x: x.get('last_ts') or datetime.min, reverse=True)
+    try:
+        out.sort(key=lambda x: x.get('last_ts') or datetime.min, reverse=True)
+    except Exception:
+        pass  # If sorting fails, return unsorted list
+    
     return out
 
 @app.route('/messaging')
 def messaging():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    conversations = get_user_conversations(session['user_id'])
-    return render_template('messaging.html', user=user, conversations=conversations)
+    try:
+        user = User.query.get(session['user_id'])
+        if not user:
+            flash('User not found. Please login again.', 'error')
+            return redirect(url_for('login'))
+        conversations = get_user_conversations(session['user_id'])
+        return render_template('messaging.html', user=user, conversations=conversations)
+    except Exception as e:
+        print(f"Error in messaging route: {e}")
+        flash('An error occurred loading messages. Please try again.', 'error')
+        return redirect(url_for('dashboard'))
 
 # Notifications Page
 @app.route('/notifications')
@@ -1217,8 +1277,10 @@ def direct_chat(user_id):
                 else:
                     cs.unread_count_user2 = 0
             db.session.commit()
-    except Exception:
+    except Exception as e:
         db.session.rollback()
+        print(f"Error marking messages as read in direct_chat: {e}")
+        # Continue anyway - don't block the user from viewing the chat
     # Simple online indicator based on is_online flag
     is_other_online = bool(other_user and other_user.is_online)
     return render_template('direct_chat.html', me=me, other_user=other_user, friendship=friendship, is_other_online=is_other_online)
@@ -1427,8 +1489,10 @@ def send_direct_message():
                 cs_tmp.unread_count_user1 = 0
             else:
                 cs_tmp.unread_count_user2 = 0
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error marking messages as read before sending: {e}")
+        # Continue - don't block message sending if read marking fails
+        db.session.rollback()
 
     # Create message with plain text content
     new_message = Message(
