@@ -708,7 +708,6 @@ def get_user_conversations(user_id):
         pass  # If sorting fails, return unsorted list
     
     return out
-
 @app.route('/messaging')
 def messaging():
     if 'user_id' not in session:
