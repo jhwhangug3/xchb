@@ -91,25 +91,22 @@ _default_postgres_url = (
     '@dpg-d2m7qimr433s73cqvdg0-a.singapore-postgres.render.com/database_db_81rr'
 )
 _database_url = os.environ.get('DATABASE_URL', _default_postgres_url)
-# Ensure SSL for Render Postgres
+# Ensure SSL for Render Postgres - use prefer for better compatibility
 if 'sslmode=' not in _database_url:
     connector = '&' if '?' in _database_url else '?'
-    _database_url = f"{_database_url}{connector}sslmode=require"
+    _database_url = f"{_database_url}{connector}sslmode=prefer"
 
 # Single database for all tables
 app.config['SQLALCHEMY_DATABASE_URI'] = _database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
-    'pool_recycle': 300,
-    'pool_size': 10,
-    'max_overflow': 20,
+    'pool_recycle': 600,  # Increased to keep connections alive longer
+    'pool_size': 5,  # Reduced to avoid too many concurrent connections
+    'max_overflow': 10,
+    'pool_reset_on_return': 'commit',
     'connect_args': {
-        'connect_timeout': 10,
-        'keepalives': 1,
-        'keepalives_idle': 30,
-        'keepalives_interval': 10,
-        'keepalives_count': 5
+        'connect_timeout': 10
     }
 }
 
