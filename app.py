@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import OperationalError
 from datetime import datetime, timedelta
 from io import BytesIO
 import base64
@@ -91,10 +92,10 @@ _default_postgres_url = (
     '@dpg-d2m7qimr433s73cqvdg0-a.singapore-postgres.render.com/database_db_81rr'
 )
 _database_url = os.environ.get('DATABASE_URL', _default_postgres_url)
-# Ensure SSL for Render Postgres - use prefer for better compatibility
+# Ensure SSL for Render Postgres - force require to avoid unexpected downgrades
 if 'sslmode=' not in _database_url:
     connector = '&' if '?' in _database_url else '?'
-    _database_url = f"{_database_url}{connector}sslmode=prefer"
+    _database_url = f"{_database_url}{connector}sslmode=require"
 
 # Single database for all tables
 app.config['SQLALCHEMY_DATABASE_URI'] = _database_url
@@ -106,7 +107,12 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 10,
     'pool_reset_on_return': 'commit',
     'connect_args': {
-        'connect_timeout': 10
+        'connect_timeout': 10,
+        # TCP keepalive to reduce unexpected SSL socket closes on long-lived pools
+        'keepalives': 1,
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5
     }
 }
 
@@ -482,7 +488,14 @@ def login():
         username = (request.form.get('username') or '').strip().lower()
         password = request.form.get('password') or ''
         
-        user = User.query.filter_by(username=username).first()
+        try:
+            user = User.query.filter_by(username=username).first()
+        except OperationalError as e:
+            # DB unavailable; avoid 500 and surface a friendly error
+            db.session.rollback()
+            flash('Service temporarily unavailable. Please retry in a moment.', 'error')
+            print(f"Database connection error on login: {e}")
+            return render_template('login.html'), 503
         
         # Guard against malformed legacy hashes that would raise ValueError
         is_valid = False
