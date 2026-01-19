@@ -478,12 +478,22 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username'].strip().lower()
-        password = request.form['password']
+        # Use get() to avoid KeyError when form fields are missing
+        username = (request.form.get('username') or '').strip().lower()
+        password = request.form.get('password') or ''
         
         user = User.query.filter_by(username=username).first()
         
-        if user and check_password_hash(user.password_hash, password):
+        # Guard against malformed legacy hashes that would raise ValueError
+        is_valid = False
+        if user:
+            try:
+                is_valid = check_password_hash(user.password_hash, password)
+            except ValueError:
+                # Treat invalid hashes as failed auth instead of 500
+                is_valid = False
+        
+        if is_valid:
             session['user_id'] = user.id
             session['username'] = user.username
             session['public_key'] = user.public_key
